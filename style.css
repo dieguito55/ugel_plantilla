@@ -1,0 +1,509 @@
+/*
+Theme Name: UGEL El Collao
+Description: Tema WordPress híbrido que mantiene el diseño original con capacidades de administración de WordPress. Combina editor clásico con FSE para diferentes secciones.
+Version: 1.0.0
+Author: UGEL El Collao Development Team
+Text Domain: ugel-theme
+Domain Path: /languages
+
+Este tema mantiene exactamente el mismo diseño original mientras añade:
+- Gestión de contenido desde WordPress
+- Tipos de contenido personalizados (Convocatorias, Comunicados, Destacados, etc.)
+- Personalización de colores y configuraciones
+- Sistema híbrido: algunas partes editables desde el sitio, otras desde el administrador
+- Páginas de archivo y single optimizadas
+- Sistema de filtros y búsqueda
+- Responsive design mantenido
+- Accesibilidad mejorada
+- SEO optimizado
+*/
+
+/* Importar estilos principales */
+@import url('assets/css/main-styles.css');
+
+/* Estilos base ya definidos en header.php para optimización */
+
+/* Estilos adicionales específicos de WordPress */
+.wp-block-image {
+  margin: 20px 0;
+}
+
+.wp-block-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.wp-block-quote {
+  background: linear-gradient(180deg, #f8fffe, #fff);
+  border-left: 4px solid var(--teal);
+  padding: 16px 20px;
+  margin: 20px 0;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  color: #415b5a;
+}
+
+.wp-block-code {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Courier New', monospace;
+  overflow-x: auto;
+}
+
+.wp-block-table {
+  margin: 20px 0;
+}
+
+.wp-block-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.wp-block-table th,
+.wp-block-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e9eef0;
+}
+
+.wp-block-table th {
+  background: linear-gradient(180deg, #f8fffe, #f0f9f9);
+  font-weight: 800;
+  color: var(--ink);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.wp-block-button .wp-block-button__link {
+  background: linear-gradient(90deg, var(--teal), #00b7b1);
+  color: #fff;
+  text-decoration: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 800;
+  display: inline-block;
+  transition: all 0.15s ease;
+}
+
+.wp-block-button .wp-block-button__link:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+/* Clases de alineación de WordPress */
+.alignleft {
+  float: left;
+  margin: 0 20px 20px 0;
+}
+
+.alignright {
+  float: right;
+  margin: 0 0 20px 20px;
+}
+
+.aligncenter {
+  display: block;
+  margin: 20px auto;
+  text-align: center;
+}
+
+.alignwide {
+  width: 120%;
+  max-width: 120%;
+  margin-left: -10%;
+}
+
+.alignfull {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+/* Comentarios */
+.comments-area {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid #e9eef0;
+}
+
+.comments-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--ink);
+  margin: 0 0 20px;
+}
+
+.comment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.comment {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fffe;
+  border: 1px solid #e9eef0;
+  border-radius: 12px;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.comment-author-link {
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.comment-date {
+  font-size: 12px;
+  color: #566a78;
+}
+
+.comment-content p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.reply-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal);
+  text-decoration: none;
+}
+
+.reply-link:hover {
+  text-decoration: underline;
+}
+
+/* Formulario de comentarios */
+.comment-form {
+  margin-top: 30px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #e9eef0;
+  border-radius: 12px;
+}
+
+.comment-form-comment textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 16px;
+  border: 2px solid #e9eef0;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.comment-form-author,
+.comment-form-email,
+.comment-form-url {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.comment-form label {
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.comment-form input[type="text"],
+.comment-form input[type="email"],
+.comment-form input[type="url"] {
+  padding: 10px 12px;
+  border: 2px solid #e9eef0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.comment-form input:focus,
+.comment-form textarea:focus {
+  outline: 0;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(9, 161, 158, 0.1);
+}
+
+.form-submit input {
+  background: linear-gradient(90deg, var(--teal), #00b7b1);
+  color: #fff;
+  border: 0;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.form-submit input:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+/* Widgets */
+.widget {
+  margin-bottom: 30px;
+}
+
+.widget-title {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--ink);
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e9eef0;
+}
+
+.widget ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.widget li {
+  margin-bottom: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f4f6;
+}
+
+.widget li:last-child {
+  border-bottom: 0;
+}
+
+.widget a {
+  color: #566a78;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.widget a:hover {
+  color: var(--teal);
+}
+
+/* Calendario widget */
+.calendar_wrap {
+  background: #fff;
+  border: 1px solid #e9eef0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.calendar_wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.calendar_wrap th,
+.calendar_wrap td {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #f0f4f6;
+  font-size: 13px;
+}
+
+.calendar_wrap th {
+  background: var(--teal);
+  color: #fff;
+  font-weight: 700;
+}
+
+.calendar_wrap a {
+  color: var(--teal);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Búsqueda widget */
+.search-form {
+  display: flex;
+  gap: 8px;
+}
+
+.search-form input[type="search"] {
+  flex: 1;
+  padding: 10px 12px;
+  border: 2px solid #e9eef0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.search-form button {
+  padding: 10px 16px;
+  background: var(--teal);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Paginación */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 40px 0;
+  flex-wrap: wrap;
+}
+
+.page-numbers {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #e9eef0;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  color: #566a78;
+  transition: all 0.15s ease;
+}
+
+.page-numbers:hover,
+.page-numbers.current {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+}
+
+.page-numbers.dots {
+  border: 0;
+  background: transparent;
+}
+
+/* Estilos para el editor */
+.edit-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #566a78;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 10px;
+  transition: all 0.15s ease;
+}
+
+.edit-link:hover {
+  background: #edf2f7;
+  color: var(--ink);
+}
+
+/* Estilos para pantallas de impresión */
+@media print {
+  .topbar,
+  .subheader,
+  .mobile-fab,
+  .mobile-menu,
+  .chat-fab,
+  .chat-panel,
+  .share-section,
+  .post-navigation,
+  .hub-aside {
+    display: none !important;
+  }
+  
+  .hub-layout {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .single-convocatoria-content,
+  .single-comunicado-content,
+  .single-destacado-content {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+  
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 10px;
+    color: #666;
+  }
+  
+  .download-btn:after,
+  .document-link:after {
+    content: " - " attr(href);
+  }
+}
+
+/* Mejoras de rendimiento */
+.lazy-load {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.lazy-load.loaded {
+  opacity: 1;
+}
+
+/* Modo oscuro (opcional) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1f22;
+    --ink: #f3f6f8;
+  }
+  
+  /* Solo aplicar si el usuario no ha configurado colores específicos */
+}
+
+/* Estados de error */
+.error-message {
+  background: linear-gradient(180deg, #fff5f5, #fed7d7);
+  color: #c53030;
+  border: 1px solid #fc8181;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.success-message {
+  background: linear-gradient(180deg, #f0fff4, #e6fffa);
+  color: #0b5d44;
+  border: 1px solid #9ae6b4;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Optimizaciones de carga */
+.preload-hidden {
+  visibility: hidden;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Fin del archivo style.css */

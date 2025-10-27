@@ -1,0 +1,245 @@
+{
+    "responses": [
+        {
+            "id": 1,
+            "category": "Información Básica",
+            "keywords": [
+                "qué es",
+                "que es",
+                "ugel",
+                "collao",
+                "institución",
+                "unidad",
+                "gestión",
+                "educativa",
+                "información"
+            ],
+            "response": "La UGEL El Collao es la Unidad de Gestión Educativa Local de El Collao, encargada de garantizar un servicio educativo de calidad en todos los niveles y modalidades del sistema educativo. Dependemos de la Dirección Regional de Educación de Puno (DRE-Puno) y coordinamos labores con las instituciones educativas de nuestra jurisdicción.",
+            "active": true
+        },
+        {
+            "id": 2,
+            "category": "Ubicación",
+            "keywords": [
+                "dónde",
+                "donde",
+                "ubicación",
+                "dirección",
+                "direccion",
+                "encuentran",
+                "queda",
+                "sede",
+                "ubicamos"
+            ],
+            "response": "Nos encontramos en:<br><strong>Jr. Sucre N° 215, Barrio Santa Bárbara</strong><br>Ilave, El Collao, Puno<br><strong>Referencia:</strong> A una cuadra de la plaza de armas<br><br>📍 <a href='https://maps.google.com/?q=Jr.+Sucre+215+Ilave+Puno' target='_blank'>Ver en Google Maps</a>",
+            "active": true
+        },
+        {
+            "id": 3,
+            "category": "Horarios",
+            "keywords": [
+                "horario",
+                "horarios",
+                "atención",
+                "atencion",
+                "atienden",
+                "abren",
+                "hora",
+                "cuándo",
+                "cuando",
+                "funcionamiento"
+            ],
+            "response": "🕒 <strong>Horarios de Atención:</strong><br>• <strong>Lunes a Viernes:</strong> 8:30 AM - 4:30 PM<br>• <strong>Sábados y Domingos:</strong> Cerrado<br>• <strong>Feriados:</strong> Cerrado<br><br>💡 <em>Te recomendamos llamar antes de tu visita para confirmar disponibilidad.</em>",
+            "active": true
+        },
+        {
+            "id": 4,
+            "category": "Contacto",
+            "keywords": [
+                "contacto",
+                "teléfono",
+                "telefono",
+                "celular",
+                "número",
+                "numero",
+                "llamar",
+                "comunicar",
+                "email",
+                "correo"
+            ],
+            "response": "📞 <strong>Contactos Oficiales:</strong><br>• <strong>Teléfono:</strong> <a href='tel:974202598'>974 202 598</a><br>• <strong>Fijo:</strong> <a href='tel:051552506'>051 552 506</a><br>• <strong>Email:</strong> <a href='mailto:info@ugelelcollao.edu.pe'>info@ugelelcollao.edu.pe</a><br>• <strong>Web:</strong> <a href='https://ugelelcollao.edu.pe' target='_blank'>ugelelcollao.edu.pe</a>",
+            "active": true
+        },
+        {
+            "id": 5,
+            "category": "Servicios",
+            "keywords": [
+                "servicios",
+                "qué ofrecen",
+                "que ofrecen",
+                "funciones",
+                "hacen",
+                "realizan",
+                "servicio"
+            ],
+            "response": "🏢 <strong>Nuestros Servicios:</strong><br>• Sistema SIDAGE (Apoyo a la Gestión Educativa)<br>• Consulta de boletas de pago online<br>• Trámites documentarios<br>• Mesa de partes virtual<br>• Gestión pedagógica y administrativa<br>• Capacitaciones docentes<br>• Libro de reclamaciones<br><br>💻 Muchos servicios están disponibles online 24/7",
+            "active": true
+        },
+        {
+            "id": 6,
+            "category": "Trámites",
+            "keywords": [
+                "trámites",
+                "tramites",
+                "documentos",
+                "papeles",
+                "gestiones",
+                "procedimientos",
+                "proceso"
+            ],
+            "response": "📋 <strong>Trámites Disponibles:</strong><br>• Cuadro de distribución de horas pedagógicas<br>• Encargatura de profesores<br>• Gestión de personal educativo<br>• Documentos administrativos educativos<br>• Constancias y certificaciones<br><br>🌐 <strong>Mesa de Partes Virtual:</strong> Disponible 24/7<br>📍 <strong>Presencial:</strong> Jr. Sucre N° 215 (Lun-Vie 8:30AM-4:30PM)",
+            "active": true
+        },
+        {
+            "id": 7,
+            "category": "Boletas de Pago",
+            "keywords": [
+                "boleta",
+                "pago",
+                "sueldo",
+                "remuneración",
+                "remuneracion",
+                "salario",
+                "consulta",
+                "revisar",
+                "planilla"
+            ],
+            "response": "💰 <strong>Consulta de Boletas de Pago:</strong><br>• <strong>Online:</strong> <a href='https://ugelelcollao.edu.pe' target='_blank'>www.ugelelcollao.edu.pe</a><br>• <strong>Presencial:</strong> Jr. Sucre N° 215<br>• <strong>Teléfono:</strong> 974 202 598<br><br>⏰ El sistema online está disponible 24/7<br>🆔 Necesitarás tu DNI y código de trabajador",
+            "active": true
+        },
+        {
+            "id": 8,
+            "category": "Capacitaciones",
+            "keywords": [
+                "capacitación",
+                "capacitaciones",
+                "talleres",
+                "cursos",
+                "formación",
+                "enseñanza",
+                "entrenamiento"
+            ],
+            "response": "🎓 <strong>Programas de Capacitación:</strong><br>• Gestión pedagógica<br>• Conservación de materiales educativos<br>• Participación de padres de familia<br>• Formación docente continua<br>• Convivencia escolar<br>• Tecnologías educativas<br><br>📅 Las convocatorias se publican en nuestra sección 'Convocatorias'",
+            "active": true
+        },
+        {
+            "id": 9,
+            "category": "Convocatorias",
+            "keywords": [
+                "convocatoria",
+                "convocatorias",
+                "concurso",
+                "concursos",
+                "postulación",
+                "postulacion"
+            ],
+            "response": "📢 <strong>Convocatorias Vigentes:</strong><br>Las convocatorias activas las encuentras en nuestra sección <strong>'Convocatorias'</strong><br><br>📋 <strong>Tipos de convocatorias:</strong><br>• Concursos docentes<br>• Personal administrativo<br>• Capacitaciones<br>• Procesos especiales<br><br>🔔 <em>Se actualizan regularmente</em>",
+            "active": true
+        },
+        {
+            "id": 10,
+            "category": "Comunicados",
+            "keywords": [
+                "comunicado",
+                "comunicados",
+                "aviso",
+                "avisos",
+                "noticia",
+                "noticias",
+                "información"
+            ],
+            "response": "📰 <strong>Comunicados Oficiales:</strong><br>Los comunicados están en la sección <strong>'Comunicados'</strong> de nuestra página principal<br><br>📋 <strong>Encuentras:</strong><br>• Disposiciones oficiales<br>• Cambios normativos<br>• Cronogramas importantes<br>• Avisos urgentes<br><br>🆕 <em>Revisa frecuentemente para estar al día</em>",
+            "active": true
+        },
+        {
+            "id": 11,
+            "category": "Reclamos",
+            "keywords": [
+                "reclamo",
+                "reclamos",
+                "queja",
+                "quejas",
+                "sugerencia",
+                "problema",
+                "inconveniente"
+            ],
+            "response": "📝 <strong>Libro de Reclamaciones:</strong><br>Contamos con libro de reclamaciones físico y digital<br><br>📍 <strong>Presencial:</strong> Jr. Sucre N° 215<br>🌐 <strong>Online:</strong> En nuestra página web<br>📞 <strong>Teléfono:</strong> 974 202 598<br><br>⏱️ <strong>Tiempo de respuesta:</strong> Máximo 30 días hábiles",
+            "active": true
+        },
+        {
+            "id": 12,
+            "category": "SIDAGE",
+            "keywords": [
+                "sidage",
+                "sistema",
+                "apoyo",
+                "gestión",
+                "gestion",
+                "plataforma"
+            ],
+            "response": "💻 <strong>Sistema SIDAGE:</strong><br>El SIDAGE es nuestro Sistema de Apoyo a la Gestión Educativa<br><br>📞 <strong>Para implementación:</strong><br>Contacta con tu especialista responsable<br>• Teléfono: 974 202 598<br>• Email: info@ugelelcollao.edu.pe<br><br>🎯 <strong>Incluye:</strong> Capacitación e implementación completa",
+            "active": true
+        },
+        {
+            "id": 13,
+            "category": "Transparencia",
+            "keywords": [
+                "transparencia",
+                "portal",
+                "información",
+                "informacion",
+                "pública",
+                "publica",
+                "acceso"
+            ],
+            "response": "🔍 <strong>Portal de Transparencia:</strong><br>Accede a toda nuestra información pública<br><br>📊 <strong>Encuentras:</strong><br>• Presupuesto institucional<br>• Organigrama<br>• Personal y remuneraciones<br>• Contrataciones<br>• Resoluciones<br><br>🌐 <strong>Disponible 24/7</strong> en nuestra web",
+            "active": true
+        },
+        {
+            "id": 14,
+            "category": "Saludo",
+            "keywords": [
+                "hola",
+                "buenos días",
+                "buenas tardes",
+                "buenas noches",
+                "saludos",
+                "ayuda",
+                "asistencia"
+            ],
+            "response": "👋 <strong>¡Hola! Bienvenido/a a la UGEL El Collao</strong><br><br>Soy tu asistente virtual y puedo ayudarte con:<br>• 📋 Información sobre trámites<br>• 📢 Convocatorias vigentes<br>• 🕒 Horarios y contacto<br>• 💻 Servicios online<br>• 📞 Datos de contacto<br><br>¿En qué tema específico necesitas ayuda?",
+            "active": true
+        },
+        {
+            "id": 15,
+            "category": "Agradecimiento",
+            "keywords": [
+                "gracias",
+                "muchas gracias",
+                "perfecto",
+                "excelente",
+                "bien",
+                "ok",
+                "vale"
+            ],
+            "response": "😊 <strong>¡De nada, fue un gusto ayudarte!</strong><br><br>Si necesitas más información:<br>• 📞 Llámanos: 974 202 598<br>• 📧 Escríbenos: info@ugelelcollao.edu.pe<br>• 🏢 Visítanos: Jr. Sucre N° 215, Ilave<br><br>🕒 <strong>Horario:</strong> Lun-Vie 8:30AM - 4:30PM",
+            "active": true
+        }
+    ],
+    "settings": {
+        "greeting": "👋 ¡Hola! Soy el asistente virtual de la UGEL El Collao.<br><br>Puedo ayudarte con:<br>• 📋 Información sobre trámites<br>• 📢 Convocatorias y comunicados<br>• 🕒 Horarios de atención<br>• 📞 Datos de contacto<br>• 💻 Servicios online<br><br>¿En qué puedo ayudarte hoy?",
+        "fallback": "🤔 <strong>No encontré información específica sobre tu consulta.</strong><br><br>Para una atención personalizada:<br>• 📞 <strong>Llámanos:</strong> 974 202 598<br>• 📧 <strong>Escríbenos:</strong> info@ugelelcollao.edu.pe<br>• 🏢 <strong>Visítanos:</strong> Jr. Sucre N° 215, Ilave<br>• 🕒 <strong>Horario:</strong> Lun-Vie 8:30AM-4:30PM<br><br>¿Hay algo específico sobre <strong>trámites, convocatorias o servicios</strong> en lo que pueda ayudarte?",
+        "typing_delay": 1500,
+        "match_threshold": 1
+    }
+}
