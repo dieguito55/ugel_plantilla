@@ -156,6 +156,38 @@ get_header(); ?>
             return $text;
           }
         }
+
+        if (!function_exists('ugel_front_topic_badges')) {
+          function ugel_front_topic_badges($post_id, $limit = 3){
+            $badges = array();
+            $terms = get_the_terms($post_id, 'category');
+
+            if ($terms && !is_wp_error($terms)) {
+              foreach ($terms as $term) {
+                $badges[] = array(
+                  'label' => $term->name,
+                  'url'   => get_term_link($term)
+                );
+                if (count($badges) >= $limit) {
+                  break;
+                }
+              }
+            }
+
+            if (empty($badges)) {
+              $type = get_post_type($post_id);
+              $obj  = $type ? get_post_type_object($type) : null;
+              if ($obj) {
+                $badges[] = array(
+                  'label' => $obj->labels->singular_name,
+                  'url'   => !empty($obj->has_archive) ? get_post_type_archive_link($type) : ''
+                );
+              }
+            }
+
+            return $badges;
+          }
+        }
         ?>
          <!-- =================== -->
         <!-- DESTACADOS (1 x 6) -->
@@ -178,10 +210,11 @@ get_header(); ?>
 
           <ol class="comm-list">
             <?php while ($q_destacados->have_posts()): $q_destacados->the_post();
-              $ttl = get_the_title();
-              $url = get_permalink();
-              $img = get_the_post_thumbnail_url(get_the_ID(), 'featured-small');
-              $sum = function_exists('ugel_front_snippet') ? ugel_front_snippet(get_post(), 28) : '';
+              $ttl    = get_the_title();
+              $url    = get_permalink();
+              $img    = get_the_post_thumbnail_url(get_the_ID(), 'featured-small');
+              $sum    = function_exists('ugel_front_snippet') ? ugel_front_snippet(get_post(), 28) : '';
+              $badges = function_exists('ugel_front_topic_badges') ? ugel_front_topic_badges(get_the_ID()) : array();
               $has_img = !empty($img);
             ?>
             <li class="comm-item <?php echo $has_img ? '' : 'noimg'; ?>" itemscope itemtype="https://schema.org/Article">
@@ -196,6 +229,25 @@ get_header(); ?>
                 <h3 class="comm-title" itemprop="headline">
                   <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($ttl); ?></a>
                 </h3>
+                <div class="comm-meta" aria-label="Información de la publicación">
+                  <time class="comm-meta__item comm-meta__date" datetime="<?php echo esc_attr(get_the_date('c')); ?>">
+                    <span class="comm-meta__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="16" height="16" focusable="false"><path fill="currentColor" d="M7 2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm0 4v14V6Zm10 0H7v14h10V6Zm-6 4h2v6h-2v-6Zm0-3h2v2h-2V7Z"/></svg>
+                    </span>
+                    <span class="comm-meta__text"><?php echo esc_html(get_the_date('d M Y')); ?></span>
+                  </time>
+                  <?php if (!empty($badges)): ?>
+                  <div class="comm-tags" role="list">
+                    <?php foreach ($badges as $badge): ?>
+                      <?php if (!empty($badge['url'])): ?>
+                        <a class="comm-chip" role="listitem" href="<?php echo esc_url($badge['url']); ?>"><?php echo esc_html($badge['label']); ?></a>
+                      <?php else: ?>
+                        <span class="comm-chip" role="listitem"><?php echo esc_html($badge['label']); ?></span>
+                      <?php endif; ?>
+                    <?php endforeach; ?>
+                  </div>
+                  <?php endif; ?>
+                </div>
                 <?php if ($sum): ?>
                   <p class="comm-excerpt"><?php echo esc_html($sum); ?></p>
                 <?php endif; ?>
@@ -229,10 +281,11 @@ get_header(); ?>
     if ($q_com->have_posts()): ?>
       <ol class="comm-list">
         <?php while ($q_com->have_posts()): $q_com->the_post();
-          $ttl = get_the_title();
-          $url = get_permalink();
-          $img = get_the_post_thumbnail_url(get_the_ID(), 'featured-small');
-          $sum = function_exists('ugel_front_snippet') ? ugel_front_snippet(get_post(), 28) : '';
+          $ttl    = get_the_title();
+          $url    = get_permalink();
+          $img    = get_the_post_thumbnail_url(get_the_ID(), 'featured-small');
+          $sum    = function_exists('ugel_front_snippet') ? ugel_front_snippet(get_post(), 28) : '';
+          $badges = function_exists('ugel_front_topic_badges') ? ugel_front_topic_badges(get_the_ID()) : array();
           $has_img = !empty($img);
         ?>
         <li class="comm-item <?php echo $has_img ? '' : 'noimg'; ?>" itemscope itemtype="https://schema.org/Article">
@@ -247,6 +300,25 @@ get_header(); ?>
             <h3 class="comm-title" itemprop="headline">
               <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($ttl); ?></a>
             </h3>
+            <div class="comm-meta" aria-label="Información de la publicación">
+              <time class="comm-meta__item comm-meta__date" datetime="<?php echo esc_attr(get_the_date('c')); ?>">
+                <span class="comm-meta__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="16" height="16" focusable="false"><path fill="currentColor" d="M7 2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm0 4v14V6Zm10 0H7v14h10V6Zm-6 4h2v6h-2v-6Zm0-3h2v2h-2V7Z"/></svg>
+                </span>
+                <span class="comm-meta__text"><?php echo esc_html(get_the_date('d M Y')); ?></span>
+              </time>
+              <?php if (!empty($badges)): ?>
+              <div class="comm-tags" role="list">
+                <?php foreach ($badges as $badge): ?>
+                  <?php if (!empty($badge['url'])): ?>
+                    <a class="comm-chip" role="listitem" href="<?php echo esc_url($badge['url']); ?>"><?php echo esc_html($badge['label']); ?></a>
+                  <?php else: ?>
+                    <span class="comm-chip" role="listitem"><?php echo esc_html($badge['label']); ?></span>
+                  <?php endif; ?>
+                <?php endforeach; ?>
+              </div>
+              <?php endif; ?>
+            </div>
             <?php if ($sum): ?>
               <p class="comm-excerpt"><?php echo esc_html($sum); ?></p>
             <?php endif; ?>
@@ -282,11 +354,12 @@ get_header(); ?>
           ]);
           if ($q_conv->have_posts()): ?>
             <div class="conv-grid">
-              <?php while ($q_conv->have_posts()): $q_conv->the_post(); 
-                $ttl = get_the_title();
-                $url = get_permalink();
-                $img = get_the_post_thumbnail_url(get_the_ID(), 'featured-large');
-                $sum = ugel_front_snippet(get_post(), 26);
+              <?php while ($q_conv->have_posts()): $q_conv->the_post();
+                $ttl    = get_the_title();
+                $url    = get_permalink();
+                $img    = get_the_post_thumbnail_url(get_the_ID(), 'featured-large');
+                $sum    = ugel_front_snippet(get_post(), 26);
+                $badges = function_exists('ugel_front_topic_badges') ? ugel_front_topic_badges(get_the_ID()) : array();
               ?>
               <article class="conv-card" itemscope itemtype="https://schema.org/Article">
                 <?php if ($img): ?>
@@ -297,6 +370,23 @@ get_header(); ?>
                 <h3 class="conv-title" itemprop="headline">
                   <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($ttl); ?></a>
                 </h3>
+                <div class="conv-meta" aria-label="Información de la convocatoria">
+                  <time class="conv-meta__date" datetime="<?php echo esc_attr(get_the_date('c')); ?>">
+                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 15H5V10h14v9Zm0-11H5V6h14v2Z"/></svg>
+                    <span><?php echo esc_html(get_the_date('d M Y')); ?></span>
+                  </time>
+                  <?php if (!empty($badges)): ?>
+                  <div class="conv-tags" role="list">
+                    <?php foreach ($badges as $badge): ?>
+                      <?php if (!empty($badge['url'])): ?>
+                        <a class="conv-chip" role="listitem" href="<?php echo esc_url($badge['url']); ?>"><?php echo esc_html($badge['label']); ?></a>
+                      <?php else: ?>
+                        <span class="conv-chip" role="listitem"><?php echo esc_html($badge['label']); ?></span>
+                      <?php endif; ?>
+                    <?php endforeach; ?>
+                  </div>
+                  <?php endif; ?>
+                </div>
                 <?php if ($sum): ?><p class="conv-excerpt"><?php echo esc_html($sum); ?></p><?php endif; ?>
                 <div class="conv-actions">
                   <a class="hub-btn" href="<?php echo esc_url($url); ?>" aria-label="Ver más sobre <?php echo esc_attr($ttl); ?>">Ver más</a>
@@ -319,38 +409,51 @@ get_header(); ?>
 <section class="interest-links" aria-label="Enlaces de interés">
   <div class="wrap">
     <div class="interest-links__header">
-      <h2 class="interest-links__title">Enlaces de Interés</h2>
+      <div class="interest-links__intro">
+        <h2 class="interest-links__title">Enlaces de Interés</h2>
+        <p class="interest-links__subtitle">Accesos rápidos a plataformas oficiales y servicios destacados de la UGEL</p>
+      </div>
+      <div class="interest-links__controls" aria-hidden="false">
+        <button class="interest-links__btn interest-links__btn--prev" type="button" aria-label="Ver enlaces anteriores" data-ribbon-prev="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+        <button class="interest-links__btn interest-links__btn--next" type="button" aria-label="Ver más enlaces" data-ribbon-next="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="m10 6-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </button>
+      </div>
     </div>
-  </div>
-</section>
 
-<section class="logo-ribbon" aria-label="Carrusel de accesos rápidos">
-  <div class="logo-ribbon__viewport">
-    <div class="logo-ribbon__track">
-      <?php
-      $enlaces = get_enlaces_interes();
-      if ($enlaces):
-        for ($i = 0; $i < 2; $i++):
-          foreach ($enlaces as $enlace):
-            $url    = get_post_meta($enlace->ID, '_enlace_url', true);
-            $target = get_post_meta($enlace->ID, '_enlace_target', true) ?: '_self';
-            $imagen = get_the_post_thumbnail_url($enlace->ID, 'quick-access');
-            if ($imagen && $url): ?>
-              <a class="logo-ribbon__link" 
-                 href="<?php echo esc_url($url); ?>" 
-                 target="<?php echo esc_attr($target); ?>"
-                 rel="<?php echo $target === '_blank' ? 'noopener noreferrer' : ''; ?>"
-                 aria-label="<?php echo esc_attr($enlace->post_title); ?>">
-                <img src="<?php echo esc_url($imagen); ?>" 
-                     alt="<?php echo esc_attr($enlace->post_title); ?>"
-                     loading="lazy">
-              </a>
+    <div class="interest-links__body" data-ribbon>
+      <div class="logo-ribbon" aria-label="Carrusel de accesos rápidos">
+        <div class="logo-ribbon__viewport" id="interestRibbon" tabindex="0" data-ribbon-viewport>
+          <div class="logo-ribbon__track" id="interestRibbonTrack" data-ribbon-track>
             <?php
+            $enlaces = get_enlaces_interes();
+            if ($enlaces):
+              for ($i = 0; $i < 2; $i++):
+                foreach ($enlaces as $enlace):
+                  $url    = get_post_meta($enlace->ID, '_enlace_url', true);
+                  $target = get_post_meta($enlace->ID, '_enlace_target', true) ?: '_self';
+                  $imagen = get_the_post_thumbnail_url($enlace->ID, 'quick-access');
+                  if ($imagen && $url): ?>
+                    <a class="logo-ribbon__link"
+                       href="<?php echo esc_url($url); ?>"
+                       target="<?php echo esc_attr($target); ?>"
+                       rel="<?php echo $target === '_blank' ? 'noopener noreferrer' : ''; ?>"
+                       aria-label="<?php echo esc_attr($enlace->post_title); ?>">
+                      <img src="<?php echo esc_url($imagen); ?>"
+                           alt="<?php echo esc_attr($enlace->post_title); ?>"
+                           loading="lazy">
+                    </a>
+                  <?php
+                  endif;
+                endforeach;
+              endfor;
             endif;
-          endforeach;
-        endfor;
-      endif;
-      ?>
+            ?>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -461,5 +564,80 @@ get_header(); ?>
   </div>
 </section>
 
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const ribbonRoot = document.querySelector('[data-ribbon]');
+  if(!ribbonRoot) return;
+  const viewport = ribbonRoot.querySelector('[data-ribbon-viewport]');
+  const track = ribbonRoot.querySelector('[data-ribbon-track]');
+  if(!viewport || !track) return;
 
-<?php get_footer();
+  const prevBtn = ribbonRoot.querySelector('[data-ribbon-prev]');
+  const nextBtn = ribbonRoot.querySelector('[data-ribbon-next]');
+  let autoTimer = null;
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function scrollStep(){
+    const base = viewport.offsetWidth * 0.6;
+    return Math.max(220, Math.round(base));
+  }
+
+  function scrollBy(delta){
+    viewport.scrollBy({ left: delta, behavior: 'smooth' });
+  }
+
+  function goPrev(){ scrollBy(scrollStep() * -1); }
+  function goNext(){ scrollBy(scrollStep()); }
+
+  if (prevBtn) prevBtn.addEventListener('click', goPrev);
+  if (nextBtn) nextBtn.addEventListener('click', goNext);
+
+  function startAuto(){
+    if (prefersReducedMotion.matches) return;
+    stopAuto();
+    autoTimer = window.setInterval(()=>{
+      const maxScroll = track.scrollWidth - viewport.clientWidth;
+      if (viewport.scrollLeft >= maxScroll - 4) {
+        viewport.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        goNext();
+      }
+    }, 6500);
+  }
+
+  function stopAuto(){
+    if(autoTimer){
+      window.clearInterval(autoTimer);
+      autoTimer = null;
+    }
+  }
+
+  viewport.addEventListener('mouseenter', stopAuto);
+  viewport.addEventListener('focusin', stopAuto);
+  viewport.addEventListener('mouseleave', startAuto);
+  viewport.addEventListener('focusout', startAuto);
+  ribbonRoot.addEventListener('touchstart', stopAuto, { passive: true });
+  ribbonRoot.addEventListener('touchend', startAuto, { passive: true });
+
+  const onPrefersChange = ()=>{
+    if(prefersReducedMotion.matches){
+      stopAuto();
+      viewport.scrollTo({ left: 0, behavior: 'instant' });
+    } else {
+      startAuto();
+    }
+  };
+
+  if (typeof prefersReducedMotion.addEventListener === 'function') {
+    prefersReducedMotion.addEventListener('change', onPrefersChange);
+  } else if (typeof prefersReducedMotion.addListener === 'function') {
+    prefersReducedMotion.addListener(onPrefersChange);
+  }
+
+  startAuto();
+});
+</script>
+
+
+<?php get_footer(); ?>

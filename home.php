@@ -92,15 +92,18 @@ get_header(); ?>
           <?php endif; ?>
 
           <!-- Badge categoría -->
+          <?php
+          $categories = get_the_category();
+          $primary_cat = !empty($categories) ? $categories[0] : null;
+          $primary_label = $primary_cat ? $primary_cat->name : 'Blog';
+          $primary_link  = $primary_cat ? get_category_link($primary_cat) : '';
+          ?>
           <div class="card-badge">
-            <?php 
-            $categories = get_the_category();
-            if ( ! empty( $categories ) ) {
-              echo esc_html( $categories[0]->name );
-            } else {
-              echo 'Blog';
-            }
-            ?>
+            <?php if ($primary_link): ?>
+              <a href="<?php echo esc_url( $primary_link ); ?>" class="card-badge__link"><?php echo esc_html( $primary_label ); ?></a>
+            <?php else: ?>
+              <span><?php echo esc_html( $primary_label ); ?></span>
+            <?php endif; ?>
           </div>
 
           <!-- Contenido -->
@@ -111,21 +114,24 @@ get_header(); ?>
               </a>
             </h3>
 
-            <!-- Meta información -->
             <div class="card-meta">
-              <span class="meta-date">
-                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-                  <path fill="currentColor" d="M16 2H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 15H8v-2h6v2zm0-4H8v-2h6v2zm0-4H8V7h6v2z"/>
-                </svg>
-                <?php echo esc_html( get_the_date( 'd M Y' ) ); ?>
-              </span>
-              <span class="meta-author">
-                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-                  <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                </svg>
-                <?php echo esc_html( get_the_author() ); ?>
+              <time class="card-pill" datetime="<?php echo esc_attr( get_the_date( DATE_W3C ) ); ?>">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M16 2H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 15H8v-2h6v2zm0-4H8v-2h6v2zm0-4H8V7h6v2z"/></svg>
+                <span><?php echo esc_html( get_the_date( 'd M Y' ) ); ?></span>
+              </time>
+              <span class="card-pill card-pill--author">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <span><?php echo esc_html( get_the_author() ); ?></span>
               </span>
             </div>
+
+            <?php if ( ! empty( $categories ) ) : ?>
+            <div class="card-tags" role="list">
+              <?php foreach ( array_slice( $categories, 0, 3 ) as $cat ) : ?>
+                <a class="card-tag" role="listitem" href="<?php echo esc_url( get_category_link( $cat ) ); ?>"><?php echo esc_html( $cat->name ); ?></a>
+              <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
 
             <!-- Extracto -->
             <p class="card-excerpt">
@@ -483,29 +489,41 @@ get_header(); ?>
   top: 12px;
   left: 12px;
   z-index: 3;
-  
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: #FFFFFF;
-  
   background: linear-gradient(135deg, #000C97, #021F59);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
-  
-  box-shadow: 
+  border-radius: 12px;
+  box-shadow:
     0 4px 12px rgba(2, 31, 89, 0.20),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  
   backdrop-filter: blur(8px);
   transition: all 0.3s ease;
 }
 
+.card-badge__link,
+.card-badge span {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.card-badge__link:hover,
+.card-badge__link:focus-visible {
+  text-decoration: none;
+  outline: none;
+}
+
 .hub-card:hover .card-badge {
   transform: translateY(-2px);
-  box-shadow: 
+  box-shadow:
     0 6px 16px rgba(2, 31, 89, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
@@ -513,9 +531,10 @@ get_header(); ?>
 /* ========== CONTENIDO CARD ========== */
 .card-body {
   padding: 18px;
-  display: grid;
-  gap: 10px;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-content: flex-start;
 }
 
 .card-title {
@@ -525,6 +544,12 @@ get_header(); ?>
   line-height: 1.30;
   color: #021F59;
   letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow: hidden;
+  max-height: calc(1.30em * 5);
 }
 
 .card-title a {
@@ -545,34 +570,64 @@ get_header(); ?>
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  font-size: 12px;
-  color: #0F4A7F;
-  font-weight: 600;
-  padding: 6px 0;
+  align-items: center;
 }
 
-.meta-date,
-.meta-author {
+.card-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(130, 151, 254, 0.12);
-  border-radius: 8px;
-  transition: all 0.25s ease;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(178, 255, 255, 0.16);
+  border: 1px solid rgba(130, 151, 254, 0.2);
+  font-size: 12px;
+  font-weight: 700;
+  color: #021F59;
+  letter-spacing: 0.2px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.meta-date:hover,
-.meta-author:hover {
-  background: rgba(255, 255, 255, 0.8);
-  border-color: rgba(130, 151, 254, 0.25);
-}
-
-.card-meta svg {
-  opacity: 0.80;
+.card-pill svg {
+  opacity: 0.85;
   flex-shrink: 0;
-  color: #000C97;
+  color: inherit;
+}
+
+.card-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(2, 31, 89, 0.15);
+}
+
+.card-pill--author {
+  background: rgba(130, 151, 254, 0.18);
+}
+
+.card-tags {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.card-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #021F59;
+  text-decoration: none;
+  background: linear-gradient(135deg, rgba(130, 151, 254, 0.16), rgba(178, 255, 255, 0.18));
+  border: 1px solid rgba(130, 151, 254, 0.28);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.card-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(2, 31, 89, 0.16);
+  background: linear-gradient(135deg, rgba(130, 151, 254, 0.26), rgba(178, 255, 255, 0.24));
 }
 
 /* ========== EXTRACTO ========== */
