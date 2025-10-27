@@ -122,6 +122,25 @@ get_header(); ?>
                   <span><?php echo esc_html($mins); ?> min de lectura</span>
                 </span>
               </div>
+
+              <?php
+                $topic_terms = array();
+                if ($pt === 'post') {
+                  $topic_terms = get_the_category();
+                } else {
+                  $topic_terms = get_the_terms(get_the_ID(), 'category');
+                }
+                if (!is_array($topic_terms) || is_wp_error($topic_terms)) {
+                  $topic_terms = array();
+                }
+              ?>
+              <?php if (!empty($topic_terms)): ?>
+              <div class="single-topic-chips" role="list">
+                <?php foreach (array_slice($topic_terms, 0, 4) as $term): ?>
+                  <a class="single-chip" role="listitem" href="<?php echo esc_url( get_term_link( $term ) ); ?>"><?php echo esc_html( $term->name ); ?></a>
+                <?php endforeach; ?>
+              </div>
+              <?php endif; ?>
             </header>
 
             <!-- ========== EXCERPT ========== -->
@@ -378,6 +397,12 @@ get_header(); ?>
   hyphens: auto;
   position: relative;
   z-index: 2;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow: hidden;
 }
 
 .title-underline {
@@ -403,7 +428,6 @@ get_header(); ?>
   gap: 16px;
   margin-top: 14px;
   font-size: 13px;
-  color: #0F4A7F;
   font-weight: 600;
   letter-spacing: 0.2px;
 }
@@ -412,22 +436,50 @@ get_header(); ?>
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(130, 151, 254, 0.12);
-  border-radius: 10px;
-  transition: all 0.25s ease;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(178,255,255,0.16), rgba(130,151,254,0.12));
+  border: 1px solid rgba(130,151,254,0.24);
+  color: #0F4A7F;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .meta-item:hover {
-  background: rgba(255, 255, 255, 0.8);
-  border-color: rgba(130, 151, 254, 0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(2, 31, 89, 0.18);
 }
 
 .meta-item svg {
-  opacity: 0.80;
+  opacity: 0.85;
   color: #000C97;
   flex-shrink: 0;
+}
+
+.single-topic-chips {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.single-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #021F59;
+  text-decoration: none;
+  background: linear-gradient(135deg, rgba(130, 151, 254, 0.16), rgba(178, 255, 255, 0.18));
+  border: 1px solid rgba(130, 151, 254, 0.28);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.single-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(2, 31, 89, 0.18);
+  background: linear-gradient(135deg, rgba(130, 151, 254, 0.26), rgba(178, 255, 255, 0.24));
 }
 
 /* ========== EXCERPT ========== */
