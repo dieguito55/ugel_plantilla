@@ -62,11 +62,9 @@ if ($should_force_10) {
   <div class="wrap">
     <div class="hub-layout">
 
-      <aside class="hub-sidebar">
-        <?php get_template_part('template-parts/accesos-directos'); ?>
-      </aside>
+      <?php get_template_part('template-parts/accesos-directos'); ?>
 
-      <div class="hub-main">
+      <main class="hub-main" role="main">
         <header class="archive-head">
           <nav class="breadcrumbs" aria-label="Ruta de navegación">
             <a href="<?php echo esc_url(home_url('/')); ?>">Inicio</a>
@@ -172,7 +170,7 @@ if ($should_force_10) {
             </div>
           </div>
         <?php endif; ?>
-      </div>
+      </main>
     </div>
   </div>
 </section>
@@ -223,4 +221,4 @@ if ($should_force_10) {
 })();
 </script>
 
-<?php get_footer();
+<?php get_footer(); ?>
