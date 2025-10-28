@@ -231,11 +231,14 @@ body.mm-open #chatOverlay{
   color:#021F59; background: rgba(130,151,254,.12);
   border:1px solid rgba(130,151,254,.35);
 }
+.foot-bottom .site-views__label{ font-weight:700; letter-spacing:.02em; }
+.foot-bottom .site-views__count{ font-variant-numeric: tabular-nums; }
+.foot-bottom .site-views__icon{ color: var(--color-primary); width:14px; height:14px; }
 
 /* Interest links carousel */
 .interest-links{ position: relative; }
 .interest-links__media{ position: relative; }
-.logo-ribbon{ position: relative; overflow: hidden; border-radius: 14px; }
+.logo-ribbon{ position: relative; overflow: hidden; border-radius: 14px; user-select:none; }
 .logo-ribbon__track{
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(180px, 1fr);
   gap: clamp(12px, 2vw, 18px);
@@ -1393,10 +1396,12 @@ body.mm-open #chatOverlay{
 
 
 @media (max-width:1024px){
+  .visit-section{ background: linear-gradient(135deg, var(--celeste-25) 0%, var(--celeste-50) 100%); }
   .visit-grid{ grid-template-columns: 1fr; }
   .visit-map-container{ order:-1; min-height: 380px; }
 }
 @media (max-width:768px){
+  .visit-section{ background: linear-gradient(135deg, var(--celeste-25) 0%, var(--celeste-50) 100%); }
   .visit-container{ padding: 0 16px; }
   .schedule-item{ grid-template-columns: 1fr; gap:4px; }
   .dots{ display:none; }
@@ -5019,6 +5024,7 @@ body.mm-open #chatOverlay{
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
   cursor:grab;
+  user-select:none;
 }
 .logo-ribbon.dragging{ cursor:grabbing; }
 
