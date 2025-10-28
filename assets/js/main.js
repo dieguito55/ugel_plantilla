@@ -500,27 +500,54 @@ function setupMobileMenu() {
 
     // Drag / swipe
     let startX = 0, dx = 0, dragging = false, baseX = 0;
+    let activePointerId = null;
     const threshold = 60;
 
     function onDown(e) {
+      if (dragging) return;
+      if (e.type === 'pointerdown' && e.pointerType === 'mouse' && e.button !== 0) {
+        return;
+      }
       dragging = true;
       ribbon.classList.add('is-dragging');
       track.style.transition = 'none';
       paused = true;
+      if (e.type === 'pointerdown') {
+        activePointerId = e.pointerId;
+        if (ribbon.setPointerCapture) {
+          ribbon.setPointerCapture(activePointerId);
+        }
+      }
+      if (e.cancelable) {
+        e.preventDefault();
+      }
       const point = 'touches' in e ? e.touches[0] : e;
       startX = point.clientX;
       baseX = -current * pageWidth;
     }
+
     function onMove(e) {
       if (!dragging) return;
+      if (e.type === 'pointermove' && activePointerId !== null && e.pointerId !== activePointerId) {
+        return;
+      }
       const point = 'touches' in e ? e.touches[0] : e;
       dx = point.clientX - startX;
       track.style.transform = `translate3d(${baseX + dx}px,0,0)`;
     }
-    function onUp() {
+
+    function onUp(e) {
       if (!dragging) return;
       dragging = false;
       ribbon.classList.remove('is-dragging');
+      if ((e?.type === 'pointerup' || e?.type === 'pointercancel') && activePointerId !== null && ribbon.releasePointerCapture) {
+        try {
+          ribbon.releasePointerCapture(activePointerId);
+        } catch (err) {
+          // ignore release errors (pointer already released)
+        }
+      }
+      activePointerId = null;
       if (Math.abs(dx) > threshold) {
         dx < 0 ? next() : prev();
       } else {
@@ -532,12 +559,23 @@ function setupMobileMenu() {
       startAutoplay();
     }
 
-    ribbon.addEventListener('pointerdown', onDown);
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    ribbon.addEventListener('touchstart', onDown, { passive: true });
-    ribbon.addEventListener('touchmove', onMove, { passive: true });
-    ribbon.addEventListener('touchend', onUp, { passive: true });
+    ribbon.addEventListener('dragstart', (event) => { event.preventDefault(); });
+    if (window.PointerEvent) {
+      ribbon.addEventListener('pointerdown', onDown);
+      ribbon.addEventListener('pointermove', onMove);
+      ribbon.addEventListener('pointerup', onUp);
+      ribbon.addEventListener('pointercancel', onUp);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
+    } else {
+      ribbon.addEventListener('touchstart', onDown, { passive: true });
+      ribbon.addEventListener('touchmove', onMove, { passive: true });
+      ribbon.addEventListener('touchend', onUp, { passive: true });
+      ribbon.addEventListener('mousedown', onDown);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    }
 
     // Pause on hover/focus
     ribbon.addEventListener('mouseenter', () => { paused = true; });
