@@ -311,7 +311,11 @@ get_header(); ?>
                 $date_attr = $fi_raw ?: ($ff_raw ?: current_time('Y-m-d'));
               ?>
               <?php
-                $highlight_url = $convocatoria_url . '#convocatoria-' . get_the_ID();
+                $highlight_url = add_query_arg(
+                  array('convocatoria' => get_the_ID()),
+                  $convocatoria_url
+                );
+                $highlight_url .= '#convocatoria-' . get_the_ID();
               ?>
               <article class="conv-preview__item" itemscope itemtype="https://schema.org/Event" role="listitem">
                 <div class="conv-preview__main">

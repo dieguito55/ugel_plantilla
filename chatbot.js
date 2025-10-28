@@ -122,7 +122,7 @@ class UgelChatbot {
 
                 lastClickTime = currentTime;
 
-                if (this.isDisabled || this.elements.fab.getAttribute('aria-disabled') === 'true' || this.elements.fab.disabled) {
+                if (this.isDisabled || this.elements.fab.getAttribute('aria-disabled') === 'true') {
                     console.log('🔒 Chatbot deshabilitado mientras el menú móvil está abierto');
                     return;
                 }
@@ -236,7 +236,6 @@ class UgelChatbot {
         if (this.elements.fab) {
             this.elements.fab.classList.toggle('is-disabled', this.isDisabled);
             this.elements.fab.setAttribute('aria-disabled', this.isDisabled ? 'true' : 'false');
-            this.elements.fab.toggleAttribute('disabled', this.isDisabled);
             if (this.isDisabled) {
                 this.elements.fab.setAttribute('tabindex', '-1');
                 this.elements.fab.blur();

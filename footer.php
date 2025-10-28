@@ -217,7 +217,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (chatFab) {
       chatFab.classList.toggle('is-disabled', isDisabled);
       chatFab.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
-      chatFab.toggleAttribute('disabled', isDisabled);
       if (isDisabled) {
         chatFab.setAttribute('tabindex', '-1');
         chatFab.blur();
