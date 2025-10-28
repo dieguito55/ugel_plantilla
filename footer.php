@@ -205,13 +205,15 @@ document.addEventListener('DOMContentLoaded', function() {
     fab?.setAttribute('aria-expanded', String(willOpen));
     document.body.style.overflow = willOpen ? 'hidden' : '';
   }
-  if (fab) {
-    fab.addEventListener('click', ()=>toggleMenu());
+  if (!fab?.dataset.enhanced) {
+    if (fab) {
+      fab.addEventListener('click', ()=>toggleMenu());
+    }
+    if (back) {
+      back.addEventListener('click', ()=>toggleMenu(false));
+    }
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') toggleMenu(false) });
   }
-  if (back) {
-    back.addEventListener('click', ()=>toggleMenu(false));
-  }
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape') toggleMenu(false) });
 
   // Subheader "pegado"
   (function stickSubheaderOnScroll(){
@@ -226,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Carrusel
   (function initHero(){
     const track = document.getElementById('heroTrack');
-    if(!track) return;
+    if(!track || track.dataset.enhanced) return;
     const slides = Array.from(track.querySelectorAll('.hero-slide'));
     const btnPrev = document.getElementById('heroPrev');
     const btnNext = document.getElementById('heroNext');
