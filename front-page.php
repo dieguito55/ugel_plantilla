@@ -267,9 +267,12 @@ get_header(); ?>
         <!-- CONVOCATORIAS (3 x 2) -->
         <!-- ===================== -->
         <section class="hub-sec" aria-labelledby="hub-convocatorias">
+          <?php $conv_archive = get_post_type_archive_link('convocatorias'); ?>
           <header class="hub-head">
             <h2 id="hub-convocatorias" class="title-ltra">Convocatorias</h2>
-            <a class="hub-more" href="<?php echo esc_url( get_post_type_archive_link('convocatorias') ); ?>">Ver todas</a>
+            <?php if ($conv_archive): ?>
+              <a class="hub-more" href="<?php echo esc_url($conv_archive); ?>">Ver todas</a>
+            <?php endif; ?>
           </header>
 
           <?php
@@ -282,25 +285,33 @@ get_header(); ?>
           ]);
           if ($q_conv->have_posts()): ?>
             <div class="conv-grid">
-              <?php while ($q_conv->have_posts()): $q_conv->the_post(); 
-                $ttl = get_the_title();
-                $url = get_permalink();
-                $img = get_the_post_thumbnail_url(get_the_ID(), 'featured-large');
-                $sum = ugel_front_snippet(get_post(), 26);
+              <?php while ($q_conv->have_posts()): $q_conv->the_post();
+                $details = function_exists('ugel_get_convocatoria_details') ? ugel_get_convocatoria_details(get_the_ID()) : array();
+                $titulo = $details && isset($details['titulo']) ? $details['titulo'] : get_the_title();
+                $url    = $details && isset($details['permalink']) ? $details['permalink'] : get_permalink();
+                $tipo   = $details && isset($details['tipo']) ? $details['tipo'] : '';
+                $estado = $details && isset($details['estado']) ? $details['estado'] : '';
+                $estado_slug = $details && isset($details['estado_slug']) ? $details['estado_slug'] : '';
+                $fecha = $details && isset($details['fecha_rango']) ? $details['fecha_rango'] : '';
               ?>
               <article class="conv-card" itemscope itemtype="https://schema.org/Article">
-                <?php if ($img): ?>
-                  <figure class="conv-thumb">
-                    <img src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr($ttl); ?>" loading="lazy" itemprop="image">
-                  </figure>
-                <?php endif; ?>
-                <h3 class="conv-title" itemprop="headline">
-                  <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($ttl); ?></a>
+                <header class="conv-card__header">
+                  <?php if ($tipo): ?>
+                    <span class="conv-card__type"><?php echo esc_html($tipo); ?></span>
+                  <?php endif; ?>
+                  <?php if ($estado): ?>
+                    <span class="conv-card__status<?php echo $estado_slug ? ' status-' . esc_attr($estado_slug) : ''; ?>"><?php echo esc_html($estado); ?></span>
+                  <?php endif; ?>
+                </header>
+                <h3 class="conv-card__title" itemprop="headline">
+                  <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($titulo); ?></a>
                 </h3>
-                <?php if ($sum): ?><p class="conv-excerpt"><?php echo esc_html($sum); ?></p><?php endif; ?>
-                <div class="conv-actions">
-                  <a class="hub-btn" href="<?php echo esc_url($url); ?>" aria-label="Ver más sobre <?php echo esc_attr($ttl); ?>">Ver más</a>
-                </div>
+                <?php if ($fecha): ?>
+                  <p class="conv-card__dates"><?php echo esc_html($fecha); ?></p>
+                <?php endif; ?>
+                <footer class="conv-card__footer">
+                  <a class="hub-btn" href="<?php echo esc_url($url); ?>" aria-label="Ver convocatoria <?php echo esc_attr($titulo); ?>">Ver</a>
+                </footer>
               </article>
               <?php endwhile; wp_reset_postdata(); ?>
             </div>

@@ -10,6 +10,7 @@
     initializeTheme();
   });
 
+  /* Theme boot sequence */
   function initializeTheme() {
     setupMenuSplitting();
     setupMobileMenu();
@@ -20,8 +21,10 @@
     setupSmoothScrolling();
     setupAccessibility();
     setupSearchEnhancements();
+    setupConvocatoriaTables();
   }
 
+  /* Menu label typography adjustments */
   function setupMenuSplitting() {
     function splitMenuLabels(selector) {
       const links = document.querySelectorAll(selector);
@@ -48,22 +51,27 @@
     }
     splitMenuLabels('.menu > a, .menu .menu-item > a');
   }
+/* Mobile menu: floating button, drawer, and backdrop */
 function setupMobileMenu() {
   const fab = document.getElementById('menuFab');
   const menu = document.getElementById('mobileMenu');
   const backdrop = document.getElementById('mobileBackdrop');
   if (!fab || !menu || !backdrop) return;
 
-  // Bloqueo de scroll SIN tocar el <body> (sin overflow/position fixed)
+  if (fab.dataset.enhanced === '1') return;
+  fab.dataset.enhanced = '1';
+  menu.dataset.enhanced = '1';
+  backdrop.dataset.enhanced = '1';
+
   const ScrollGuard = (() => {
     let enabled = false;
-
     const cancelableKeys = new Set([' ', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End']);
+
     const prevent = (e) => {
-      // Permitir scroll dentro del menú
       if (menu.contains(e.target)) return;
       e.preventDefault();
     };
+
     const preventKeys = (e) => {
       if (!enabled) return;
       if (cancelableKeys.has(e.key) && !menu.contains(e.target)) {
@@ -90,6 +98,7 @@ function setupMobileMenu() {
   })();
 
   let isMenuOpen = false;
+
   const open = () => {
     if (isMenuOpen) return;
     isMenuOpen = true;
@@ -97,14 +106,17 @@ function setupMobileMenu() {
     backdrop.classList.add('open');
     fab.classList.add('open');
     fab.setAttribute('aria-expanded', 'true');
-    document.body.classList.add('mm-open'); // solo para estilos, NO bloquea scroll
+    document.body.classList.add('mm-open');
     ScrollGuard.enable();
-    // Enfocar primer control del panel
     setTimeout(() => {
-      const first = menu.querySelector('a, button, input, select, textarea');
-      if (first) first.focus();
+      const focusables = menu.querySelectorAll('a, button, input, select, textarea');
+      const target = Array.from(focusables).find(el => !(el instanceof HTMLInputElement && el.type === 'search'));
+      if (target) {
+        target.focus();
+      }
     }, 80);
   };
+
   const close = () => {
     if (!isMenuOpen) return;
     isMenuOpen = false;
@@ -116,9 +128,9 @@ function setupMobileMenu() {
     ScrollGuard.disable();
     fab.focus();
   };
+
   const toggle = () => (isMenuOpen ? close() : open());
 
-  // Estado inicial limpio
   isMenuOpen = false;
   menu.classList.remove('open');
   backdrop.classList.remove('open');
@@ -126,7 +138,6 @@ function setupMobileMenu() {
   document.body.classList.remove('mm-open');
   ScrollGuard.disable();
 
-  // Abrir/cerrar con un click, sin “doble”
   let clicking = false;
   fab.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -136,27 +147,20 @@ function setupMobileMenu() {
     setTimeout(() => (clicking = false), 220);
   });
 
-  // Cerrar al tocar el backdrop
   backdrop.addEventListener('click', (e) => {
     e.stopPropagation();
     close();
   });
 
-  // Importante: QUITAMOS el “click fuera” en document (causa cierres involuntarios)
-  // Si lo necesitas, usa solo backdrop.
-
-  // Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isMenuOpen) close();
   });
 
-  // Cerrar al navegar dentro del menú
   menu.addEventListener('click', (e) => {
     const link = e.target.closest('a');
     if (link && link.getAttribute('href') !== '#') close();
   });
 
-  // Cerrar si pasa a desktop
   let resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
@@ -165,7 +169,6 @@ function setupMobileMenu() {
     }, 120);
   });
 
-  // Cerrar al cambiar orientación
   window.addEventListener('orientationchange', () => { if (isMenuOpen) close(); });
 }
 
@@ -173,7 +176,7 @@ function setupMobileMenu() {
 
   function setupStickySubheader() {
   const BODY_CLASS = 'nav-stick-subheader';
-  const BP = 1024; // mismo corte que tu CSS
+  const BP = 1024;
   const topbar = document.querySelector('.topbar');
   const subheader = document.querySelector('.subheader');
   if (!topbar || !subheader) return;
@@ -182,7 +185,6 @@ function setupMobileMenu() {
   let ticking = false;
 
   const update = () => {
-    // en móvil: no activamos el modo “solo subheader”
     if (window.innerWidth <= BP) {
       document.body.classList.remove(BODY_CLASS);
     } else {
@@ -209,12 +211,15 @@ function setupMobileMenu() {
 }
 
 
+/* Hero carousel transitions and controls */
 (function setupHeroCarousel() {
   const track   = document.getElementById('heroTrack');
   const btnPrev = document.getElementById('heroPrev');
   const btnNext = document.getElementById('heroNext');
   const dotsWrap= document.getElementById('heroDots');
   if (!track || !dotsWrap) return;
+
+  track.dataset.enhanced = '1';
 
   const allSlides = Array.from(track.querySelectorAll('.hero-slide'));
   if (allSlides.length === 0) return;
@@ -231,6 +236,7 @@ function setupMobileMenu() {
   });
 
   dotsWrap.innerHTML = '';
+  dotsWrap.dataset.enhanced = '1';
   if (slides.length > 1) {
     slides.forEach((_, idx) => {
       const dot = document.createElement('button');
@@ -354,6 +360,7 @@ function setupMobileMenu() {
   }
 })();
 
+  /* Form submissions and search suggestion binding */
   function setupForms() {
     const newsletterForm = document.getElementById('newsletterForm');
     if (newsletterForm) {
@@ -368,6 +375,7 @@ function setupMobileMenu() {
     searchInputs.forEach(setupSearchSuggestions);
   }
 
+  /* Newsletter subscription flow */
   function handleNewsletterSubmit(e) {
     e.preventDefault();
     const form = e.target;
@@ -389,6 +397,7 @@ function setupMobileMenu() {
       .finally(() => { submitBtn.disabled = false; submitBtn.textContent = 'Suscribirme'; });
   }
 
+  /* Lazy loading for deferred media */
   function setupLazyLoading() {
     if ('IntersectionObserver' in window) {
       const imageObserver = new IntersectionObserver((entries, observer) => {
@@ -409,6 +418,7 @@ function setupMobileMenu() {
     }
   }
 
+  /* Smooth scrolling for anchor navigation */
   function setupSmoothScrolling() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function(e) {
@@ -424,6 +434,7 @@ function setupMobileMenu() {
     });
   }
 
+  /* Accessibility helpers and screen reader support */
   function setupAccessibility() {
     document.addEventListener('keydown', handleTabTrap);
     document.addEventListener('focusin', e => {
@@ -437,6 +448,7 @@ function setupMobileMenu() {
     };
   }
 
+  /* Live search suggestions in desktop and mobile forms */
   function setupSearchSuggestions(input) {
     let timeout;
     input.addEventListener('input', function() {
@@ -469,6 +481,7 @@ function setupMobileMenu() {
     });
   }
 
+  /* Search analytics and validation */
   function setupSearchEnhancements() {
     const searchForm = document.getElementById('buscarForm');
     if (searchForm) {
@@ -486,6 +499,139 @@ function setupMobileMenu() {
         }
       });
     }
+  }
+
+  function setupConvocatoriaTables() {
+    const sections = document.querySelectorAll('[data-convocatoria-table]');
+    if (!sections.length) return;
+
+    const parseLength = (value) => {
+      if (value === 'all') return Infinity;
+      const parsed = parseInt(value, 10);
+      return Number.isNaN(parsed) || parsed <= 0 ? 10 : parsed;
+    };
+
+    const formatRange = (start, end, total) => {
+      const label = total === 1 ? 'convocatoria' : 'convocatorias';
+      if (total === 0) return 'Mostrando 0 de 0 convocatorias';
+      return `Mostrando ${start}–${end} de ${total} ${label}`;
+    };
+
+    sections.forEach(section => {
+      if (section.dataset.enhanced === '1') return;
+      const tableBody = section.querySelector('tbody');
+      if (!tableBody) return;
+
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+      if (!rows.length) {
+        const empty = section.querySelector('[data-empty]');
+        if (empty) empty.hidden = false;
+        section.dataset.enhanced = '1';
+        return;
+      }
+
+      const lengthSelect = section.querySelector('[data-length]');
+      const searchInput = section.querySelector('[data-search]');
+      const info = section.querySelector('[data-count]');
+      const pager = section.querySelector('[data-pager]');
+      const emptyMessage = section.querySelector('[data-empty]');
+
+      let pageSize = parseLength(lengthSelect ? lengthSelect.value : '10');
+      let currentPage = 1;
+      let filtered = rows.slice();
+
+      const buildPager = (totalPages) => {
+        if (!pager) return;
+        pager.innerHTML = '';
+        if (totalPages <= 1) {
+          pager.hidden = true;
+          return;
+        }
+        pager.hidden = false;
+
+        const createButton = (label, page, disabled, active) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.textContent = label;
+          if (disabled) button.disabled = true;
+          if (active) button.classList.add('is-active');
+          if (label === '‹') {
+            button.setAttribute('aria-label', 'Anterior');
+          } else if (label === '›') {
+            button.setAttribute('aria-label', 'Siguiente');
+          }
+          button.addEventListener('click', () => {
+            if (page === currentPage || disabled) return;
+            currentPage = page;
+            render();
+          });
+          pager.appendChild(button);
+        };
+
+        createButton('‹', Math.max(1, currentPage - 1), currentPage === 1, false);
+        for (let i = 1; i <= totalPages; i += 1) {
+          createButton(String(i), i, false, i === currentPage);
+        }
+        createButton('›', Math.min(totalPages, currentPage + 1), currentPage === totalPages, false);
+      };
+
+      const render = () => {
+        const totalRows = filtered.length;
+        const totalPages = pageSize === Infinity ? 1 : Math.max(1, Math.ceil(totalRows / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        rows.forEach(row => { row.hidden = true; });
+
+        let startIndex = 0;
+        let endIndex = totalRows;
+
+        if (pageSize !== Infinity) {
+          startIndex = (currentPage - 1) * pageSize;
+          endIndex = Math.min(startIndex + pageSize, totalRows);
+        }
+
+        filtered.slice(startIndex, endIndex).forEach(row => { row.hidden = false; });
+
+        if (info) {
+          const startLabel = totalRows === 0 ? 0 : startIndex + 1;
+          const endLabel = totalRows === 0 ? 0 : endIndex;
+          info.textContent = formatRange(startLabel, endLabel, totalRows);
+        }
+
+        if (emptyMessage) {
+          emptyMessage.hidden = totalRows !== 0;
+        }
+
+        buildPager(totalPages);
+      };
+
+      if (lengthSelect) {
+        lengthSelect.addEventListener('change', () => {
+          pageSize = parseLength(lengthSelect.value);
+          currentPage = 1;
+          render();
+        });
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          const query = searchInput.value.trim().toLowerCase();
+          if (!query) {
+            filtered = rows.slice();
+          } else {
+            filtered = rows.filter(row => {
+              const haystack = (row.dataset.search || '').toLowerCase();
+              return haystack.includes(query);
+            });
+          }
+          currentPage = 1;
+          render();
+        });
+      }
+
+      section.dataset.enhanced = '1';
+      render();
+    });
   }
 
   function trapFocus(element) {
