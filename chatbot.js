@@ -105,21 +105,21 @@ class UgelChatbot {
         // FAB Click - CON DEBOUNCE PARA EVITAR DOBLE CLICK
         if (this.elements.fab) {
             let lastClickTime = 0;
-            
+
             this.elements.fab.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                
+
                 const currentTime = Date.now();
                 const timeDiff = currentTime - lastClickTime;
-                
+
                 // Ignorar clicks muy rápidos (debounce de 300ms)
                 if (timeDiff < 300) {
                     console.log('⏭️ Click ignorado (muy rápido)');
                     return;
                 }
-                
+
                 lastClickTime = currentTime;
 
                 if (this.isDisabled || this.elements.fab.getAttribute('aria-disabled') === 'true') {

@@ -647,21 +647,35 @@ foreach ($docs_labels as $key => $label) {
   .convocatoria-pdf__link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
     font-weight: 700;
-    color: #000C97;
-    text-decoration: none;
-  }
-  .convocatoria-pdf__link::after {
-    content: '↗';
     font-size: 0.85rem;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid transparent;
   }
-  .convocatoria-pdf__link:hover {
-    text-decoration: underline;
+  .convocatoria-doc--active {
+    background: rgba(0, 12, 151, 0.12);
+    color: #000C97;
+    border-color: rgba(0, 12, 151, 0.18);
   }
-  .convocatoria-pdf__missing {
-    font-size: 0.9rem;
+  .convocatoria-doc--active:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(2, 31, 89, 0.14);
+  }
+  .convocatoria-doc--empty {
+    background: rgba(241, 245, 249, 0.8);
     color: #94A3B8;
+    border-color: rgba(148, 163, 184, 0.3);
+    cursor: not-allowed;
+  }
+  .convocatoria-doc__icon {
+    font-size: 1rem;
+  }
+  .convocatoria-doc__label {
+    white-space: nowrap;
   }
   .convocatoria-body__content {
     background: #FFFFFF;
@@ -704,8 +718,9 @@ foreach ($docs_labels as $key => $label) {
     .convocatoria-table__wrapper {
       padding: 18px;
     }
-    .convocatoria-pdfs__grid {
-      grid-template-columns: 1fr;
+    .convocatoria-doc {
+      width: 100%;
+      justify-content: center;
     }
     .convocatoria-doc {
       width: 100%;

@@ -7,6 +7,7 @@
   --chat-panel-extra: 64px;  
 }
 
+/* stylo de la carpeta template-parts modificando hero principal */
 /* Hero slider container, slides, and captions */
 .hero-carousel{
   --prim: var(--color-primario, #03178C);
@@ -3088,6 +3089,7 @@
 }
 
 
+/* stylo de la carpeta front-page.php refinando módulos del hub principal */
 .hub-main .hub-sec {
   --color-primario: #000C97;
   --color-secundario: #8297FE;
@@ -3342,7 +3344,7 @@
 
 
 
-
+/* stylo de la carpeta front-page.php reforzando cards de convocatorias */
 .conv-preview {
   display: flex;
   flex-direction: column;
