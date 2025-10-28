@@ -413,60 +413,48 @@ get_header(); ?>
         <h2 class="interest-links__title">Enlaces de Interés</h2>
         <p class="interest-links__subtitle">Accesos rápidos a plataformas oficiales y servicios destacados de la UGEL</p>
       </div>
-      <div class="interest-links__controls" data-links-controls hidden>
-        <button class="interest-links__btn interest-links__btn--prev" type="button" aria-label="Ver enlaces anteriores" data-links-prev>
+      <div class="interest-links__controls" aria-hidden="false">
+        <button class="interest-links__btn interest-links__btn--prev" type="button" aria-label="Ver enlaces anteriores" data-ribbon-prev="true">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
         </button>
-        <button class="interest-links__btn interest-links__btn--next" type="button" aria-label="Ver más enlaces" data-links-next>
+        <button class="interest-links__btn interest-links__btn--next" type="button" aria-label="Ver más enlaces" data-ribbon-next="true">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="m10 6-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
         </button>
       </div>
     </div>
 
-    <?php
-    $enlaces = get_enlaces_interes();
-    if ($enlaces): ?>
-      <div class="interest-links__body">
-        <ul class="interest-links__grid" data-links-track>
-          <?php foreach ($enlaces as $enlace):
-            $url    = get_post_meta($enlace->ID, '_enlace_url', true) ?: get_permalink($enlace);
-            $target = get_post_meta($enlace->ID, '_enlace_target', true) ?: '_self';
-            $badge  = get_post_meta($enlace->ID, '_ax_badge', true);
-            $color  = get_post_meta($enlace->ID, '_ax_color', true) ?: '#0ba7a4';
-            $logo   = get_the_post_thumbnail_url($enlace->ID, 'acceso_logo') ?: get_the_post_thumbnail_url($enlace->ID, 'large');
-            $excerpt = has_excerpt($enlace) ? get_the_excerpt($enlace) : '';
-          ?>
-          <li class="interest-card">
-            <a class="interest-card__link" href="<?php echo esc_url($url); ?>" target="<?php echo esc_attr($target); ?>" rel="<?php echo $target === '_blank' ? 'noopener noreferrer' : ''; ?>">
-              <div class="interest-card__media" aria-hidden="true" style="--badge-color: <?php echo esc_attr($color); ?>;">
-                <?php if ($logo): ?>
-                  <img src="<?php echo esc_url($logo); ?>" alt="" loading="lazy" decoding="async">
-                <?php else: ?>
-                  <span class="interest-card__placeholder">
-                    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v14l4-2 4 2 4-2 4 2V5a2 2 0 0 0-2-2Zm-7 9H9V9h3v3Zm5 0h-3V9h3v3Z"/></svg>
-                  </span>
-                <?php endif; ?>
-              </div>
-              <div class="interest-card__body">
-                <?php if ($badge): ?>
-                  <span class="interest-card__badge"><?php echo esc_html($badge); ?></span>
-                <?php endif; ?>
-                <h3 class="interest-card__title"><?php echo esc_html(get_the_title($enlace)); ?></h3>
-                <?php if ($excerpt): ?>
-                  <p class="interest-card__excerpt"><?php echo esc_html($excerpt); ?></p>
-                <?php endif; ?>
-              </div>
-              <span class="interest-card__cta" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M5 12h12l-4.5 4.5L14 18l6-6-6-6-1.5 1.5L17 11H5z"/></svg>
-              </span>
-            </a>
-          </li>
-          <?php endforeach; ?>
-        </ul>
+    <div class="interest-links__body" data-ribbon>
+      <div class="logo-ribbon" aria-label="Carrusel de accesos rápidos">
+        <div class="logo-ribbon__viewport" id="interestRibbon" tabindex="0" data-ribbon-viewport>
+          <div class="logo-ribbon__track" id="interestRibbonTrack" data-ribbon-track>
+            <?php
+            $enlaces = get_enlaces_interes();
+            if ($enlaces):
+              for ($i = 0; $i < 2; $i++):
+                foreach ($enlaces as $enlace):
+                  $url    = get_post_meta($enlace->ID, '_enlace_url', true);
+                  $target = get_post_meta($enlace->ID, '_enlace_target', true) ?: '_self';
+                  $imagen = get_the_post_thumbnail_url($enlace->ID, 'quick-access');
+                  if ($imagen && $url): ?>
+                    <a class="logo-ribbon__link"
+                       href="<?php echo esc_url($url); ?>"
+                       target="<?php echo esc_attr($target); ?>"
+                       rel="<?php echo $target === '_blank' ? 'noopener noreferrer' : ''; ?>"
+                       aria-label="<?php echo esc_attr($enlace->post_title); ?>">
+                      <img src="<?php echo esc_url($imagen); ?>"
+                           alt="<?php echo esc_attr($enlace->post_title); ?>"
+                           loading="lazy">
+                    </a>
+                  <?php
+                  endif;
+                endforeach;
+              endfor;
+            endif;
+            ?>
+          </div>
+        </div>
       </div>
-    <?php else: ?>
-      <p class="interest-links__empty">Pronto agregaremos los principales enlaces institucionales.</p>
-    <?php endif; ?>
+    </div>
   </div>
 </section>
 

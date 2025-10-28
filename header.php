@@ -819,11 +819,21 @@ function initSearchSuggest(form){
     window.setTimeout(()=>{ fab.focus({ preventScroll: true }); }, 10);
   }
 
+  let touchToggle = false;
   function toggleMenu(){ panel.classList.contains(OPEN_CLASS) ? closeMenu() : openMenu(); }
 
   if(fab){
+    fab.addEventListener('pointerdown', (e)=>{
+      if(e.pointerType && e.pointerType !== 'mouse'){
+        touchToggle = true;
+        e.preventDefault();
+        toggleMenu();
+      }
+    });
+    fab.addEventListener('pointercancel', ()=>{ touchToggle = false; });
     fab.addEventListener('click', (e)=>{
       e.stopPropagation();
+      if(touchToggle){ touchToggle = false; return; }
       toggleMenu();
     });
     fab.addEventListener('keydown', (e)=>{
