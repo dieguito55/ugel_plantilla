@@ -269,11 +269,12 @@ get_header(); ?>
         <?php
           $convocatoria_page = get_page_by_path('convocatoria');
           $convocatoria_url  = $convocatoria_page ? get_permalink($convocatoria_page) : home_url('/convocatoria/');
+          $convocatoria_anchor_url = $convocatoria_url . '#convocatoria-table';
         ?>
         <section class="hub-sec" aria-labelledby="hub-convocatorias">
           <header class="hub-head">
             <h2 id="hub-convocatorias" class="title-ltra">Convocatorias</h2>
-            <a class="hub-more" href="<?php echo esc_url($convocatoria_url); ?>">Ver todas</a>
+            <a class="hub-more" href="<?php echo esc_url($convocatoria_anchor_url); ?>">Ver todas</a>
           </header>
 
           <?php
@@ -287,9 +288,8 @@ get_header(); ?>
           if ($q_conv->have_posts()): ?>
             <div class="conv-preview" role="list" aria-label="Listado rápido de convocatorias">
               <?php while ($q_conv->have_posts()): $q_conv->the_post();
-                $ttl   = get_the_title();
-                $url   = get_permalink();
-                $meta  = ugel_get_convocatoria_meta(get_the_ID());
+              $ttl   = get_the_title();
+              $meta  = ugel_get_convocatoria_meta(get_the_ID());
                 $state = ugel_get_convocatoria_status_details($meta['fecha_inicio'] ?? '', $meta['fecha_fin'] ?? '');
                 $slug  = isset($state['slug']) ? sanitize_html_class($state['slug']) : 'en_proceso';
                 $label = $state['label'] ?? __('En proceso', 'ugel-theme');
@@ -310,13 +310,20 @@ get_header(); ?>
                 }
                 $date_attr = $fi_raw ?: ($ff_raw ?: current_time('Y-m-d'));
               ?>
+              <?php
+                $highlight_url = add_query_arg(
+                  array('convocatoria' => get_the_ID()),
+                  $convocatoria_url
+                );
+                $highlight_url .= '#convocatoria-' . get_the_ID();
+              ?>
               <article class="conv-preview__item" itemscope itemtype="https://schema.org/Event" role="listitem">
                 <div class="conv-preview__main">
                   <?php if (!empty($indice)): ?>
                     <span class="conv-preview__index">#<?php echo esc_html($indice); ?></span>
                   <?php endif; ?>
                   <h3 class="conv-preview__title" itemprop="name">
-                    <a href="<?php echo esc_url($url); ?>" itemprop="url"><?php echo esc_html($ttl); ?></a>
+                    <a href="<?php echo esc_url($highlight_url); ?>" itemprop="url"><?php echo esc_html($ttl); ?></a>
                   </h3>
                   <?php if (!empty($tipo)): ?>
                     <p class="conv-preview__type"><?php echo esc_html($tipo); ?></p>
@@ -329,7 +336,7 @@ get_header(); ?>
                   </time>
                 </div>
                 <div class="conv-preview__actions">
-                  <a class="conv-preview__link" href="<?php echo esc_url($url); ?>" aria-label="Ver convocatoria <?php echo esc_attr($ttl); ?>">
+                  <a class="conv-preview__link" href="<?php echo esc_url($highlight_url); ?>" aria-label="Ver convocatoria <?php echo esc_attr($ttl); ?>">
                     <?php esc_html_e('Ver', 'ugel-theme'); ?>
                   </a>
                 </div>

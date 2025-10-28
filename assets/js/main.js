@@ -55,6 +55,9 @@ function setupMobileMenu() {
   const fab = document.getElementById('menuFab');
   const menu = document.getElementById('mobileMenu');
   const backdrop = document.getElementById('mobileBackdrop');
+  const chatFab = document.getElementById('chatFab');
+  const chatPanel = document.getElementById('chatPanel');
+  const chatOverlay = document.getElementById('chatOverlay');
   if (!fab || !menu || !backdrop) return;
 
   if (fab.dataset.enhanced === '1') return;
@@ -97,6 +100,46 @@ function setupMobileMenu() {
     };
   })();
 
+  const dispatchMenuState = (disabled) => {
+    const detail = { disabled: !!disabled };
+    if (typeof CustomEvent === 'function') {
+      document.dispatchEvent(new CustomEvent('ugel:mobile-menu', { detail }));
+    } else if (document.createEvent) {
+      const legacyEvent = document.createEvent('CustomEvent');
+      legacyEvent.initCustomEvent('ugel:mobile-menu', true, true, detail);
+      document.dispatchEvent(legacyEvent);
+    }
+  };
+
+  const syncChatbot = (disabled) => {
+    const isDisabled = !!disabled;
+    if (chatFab) {
+      chatFab.classList.toggle('is-disabled', isDisabled);
+      chatFab.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+      if (isDisabled) {
+        chatFab.setAttribute('tabindex', '-1');
+        chatFab.blur();
+      } else {
+        chatFab.removeAttribute('tabindex');
+      }
+    }
+
+    if (isDisabled) {
+      if (chatPanel) {
+        chatPanel.classList.remove('open');
+        chatPanel.setAttribute('aria-hidden', 'true');
+      }
+      if (chatOverlay) {
+        chatOverlay.classList.remove('show');
+      }
+      if (window.ugelChatbot && typeof window.ugelChatbot.close === 'function') {
+        window.ugelChatbot.close();
+      }
+    }
+
+    dispatchMenuState(isDisabled);
+  };
+
   let isMenuOpen = false;
 
   const open = () => {
@@ -108,6 +151,7 @@ function setupMobileMenu() {
     fab.setAttribute('aria-expanded', 'true');
     document.body.classList.add('mm-open');
     ScrollGuard.enable();
+    syncChatbot(true);
     setTimeout(() => {
       const focusables = menu.querySelectorAll('a, button, input, select, textarea');
       const target = Array.from(focusables).find(el => !(el instanceof HTMLInputElement && el.type === 'search'));
@@ -126,6 +170,7 @@ function setupMobileMenu() {
     fab.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('mm-open');
     ScrollGuard.disable();
+    syncChatbot(false);
     fab.focus();
   };
 
@@ -137,6 +182,7 @@ function setupMobileMenu() {
   fab.classList.remove('open');
   document.body.classList.remove('mm-open');
   ScrollGuard.disable();
+  syncChatbot(false);
 
   let clicking = false;
   fab.addEventListener('click', (e) => {

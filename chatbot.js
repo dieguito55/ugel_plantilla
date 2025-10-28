@@ -12,6 +12,7 @@ class UgelChatbot {
         this.isTyping = false;
         this.eventsBound = false;
         this.isToggling = false; // Prevenir múltiples toggles rápidos
+        this.isDisabled = false; // Controlado por el menú móvil
         
         this.elements = {
             fab: document.getElementById('chatFab'),
@@ -120,7 +121,12 @@ class UgelChatbot {
                 }
                 
                 lastClickTime = currentTime;
-                
+
+                if (this.isDisabled || this.elements.fab.getAttribute('aria-disabled') === 'true') {
+                    console.log('🔒 Chatbot deshabilitado mientras el menú móvil está abierto');
+                    return;
+                }
+
                 // Prevenir múltiples toggles simultáneos
                 if (this.isToggling) {
                     console.log('🔒 Toggle ya en proceso, ignorando');
@@ -193,8 +199,8 @@ class UgelChatbot {
         let outsideClickTimeout;
         document.addEventListener('click', (e) => {
             if (!this.isOpen || this.isToggling) return;
-            
-            const isClickInsideChat = this.elements.panel?.contains(e.target) || 
+
+            const isClickInsideChat = this.elements.panel?.contains(e.target) ||
                                     this.elements.fab?.contains(e.target);
             
             if (!isClickInsideChat) {
@@ -212,17 +218,47 @@ class UgelChatbot {
                 }, 150);
             }
         });
-        
+
+        document.addEventListener('ugel:mobile-menu', (event) => {
+            const shouldDisable = !!(event.detail && event.detail.disabled);
+            this.setDisabledState(shouldDisable);
+        });
+
+        this.setDisabledState(this.elements.fab?.getAttribute('aria-disabled') === 'true');
+
         this.eventsBound = true;
         console.log('✅ Eventos vinculados');
     }
-    
+
+    setDisabledState(disabled) {
+        this.isDisabled = !!disabled;
+
+        if (this.elements.fab) {
+            this.elements.fab.classList.toggle('is-disabled', this.isDisabled);
+            this.elements.fab.setAttribute('aria-disabled', this.isDisabled ? 'true' : 'false');
+            if (this.isDisabled) {
+                this.elements.fab.setAttribute('tabindex', '-1');
+                this.elements.fab.blur();
+            } else {
+                this.elements.fab.removeAttribute('tabindex');
+            }
+        }
+
+        if (this.isDisabled) {
+            this.close();
+        }
+    }
+
     toggle() {
+        if (this.isDisabled) {
+            console.log('🔕 Chatbot temporalmente deshabilitado por el menú móvil');
+            return;
+        }
         if (this.isToggling) {
             console.log('🔒 Toggle bloqueado - ya en proceso');
             return;
         }
-        
+
         this.isToggling = true;
         console.log('🔄 Toggle iniciado, estado actual:', this.isOpen);
         
@@ -241,7 +277,11 @@ class UgelChatbot {
     
     open() {
         if (!this.elements.panel || this.isOpen) return;
-        
+        if (this.isDisabled) {
+            console.log('⏸️ Chatbot deshabilitado temporalmente');
+            return;
+        }
+
         console.log('📂 Abriendo chat...');
         
         this.isOpen = true;
