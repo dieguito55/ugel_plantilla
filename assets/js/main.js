@@ -54,6 +54,11 @@ function setupMobileMenu() {
   const backdrop = document.getElementById('mobileBackdrop');
   if (!fab || !menu || !backdrop) return;
 
+  if (fab.dataset.enhanced === '1') return;
+  fab.dataset.enhanced = '1';
+  menu.dataset.enhanced = '1';
+  backdrop.dataset.enhanced = '1';
+
   // Bloqueo de scroll SIN tocar el <body> (sin overflow/position fixed)
   const ScrollGuard = (() => {
     let enabled = false;
@@ -216,6 +221,8 @@ function setupMobileMenu() {
   const dotsWrap= document.getElementById('heroDots');
   if (!track || !dotsWrap) return;
 
+  track.dataset.enhanced = '1';
+
   const allSlides = Array.from(track.querySelectorAll('.hero-slide'));
   if (allSlides.length === 0) return;
 
@@ -231,6 +238,7 @@ function setupMobileMenu() {
   });
 
   dotsWrap.innerHTML = '';
+  dotsWrap.dataset.enhanced = '1';
   if (slides.length > 1) {
     slides.forEach((_, idx) => {
       const dot = document.createElement('button');
