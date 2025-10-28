@@ -207,6 +207,26 @@ Este tema mantiene exactamente el mismo diseño original mientras añade:
   font-family: inherit;
 }
 
+/* stylo de la carpeta assets/js sincronizando el chatbot con menú móvil */
+.chat-fab.is-disabled,
+.chat-fab[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.45;
+  filter: saturate(0.6);
+  transform: scale(0.96);
+}
+.chat-fab.is-disabled .robot-antenna,
+.chat-fab.is-disabled .robot-body,
+.chat-fab[aria-disabled="true"] .robot-antenna,
+.chat-fab[aria-disabled="true"] .robot-body {
+  opacity: 0.65;
+}
+
+/* stylo de la carpeta convocatoria.php resaltando el anclaje de filas */
+#convocatoria-table tr[id^="convocatoria-"] {
+  scroll-margin-top: 140px;
+}
+
 .comment-form-author,
 .comment-form-email,
 .comment-form-url {

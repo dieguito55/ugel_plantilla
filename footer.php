@@ -193,17 +193,61 @@ document.addEventListener('DOMContentLoaded', function() {
   splitMenuLabels('.menu > a, .menu .menu-item > a');
 
   const $ = s => document.querySelector(s);
-  const fab = $('#menuFab'), menu = $('#mobileMenu'), back = $('#mobileBackdrop');
+  const fab = $('#menuFab');
+  const menu = $('#mobileMenu');
+  const back = $('#mobileBackdrop');
+  const chatFab = $('#chatFab');
+  const chatPanel = $('#chatPanel');
+  const chatOverlay = $('#chatOverlay');
   if (fab) { document.body.classList.add('has-mobile-fab'); }
 
+  const dispatchMenuState = (disabled) => {
+    const detail = { disabled: !!disabled };
+    if (typeof CustomEvent === 'function') {
+      document.dispatchEvent(new CustomEvent('ugel:mobile-menu', { detail }));
+    } else if (document.createEvent) {
+      const legacyEvent = document.createEvent('CustomEvent');
+      legacyEvent.initCustomEvent('ugel:mobile-menu', true, true, detail);
+      document.dispatchEvent(legacyEvent);
+    }
+  };
+
+  const syncChatbot = (disabled) => {
+    const isDisabled = !!disabled;
+    if (chatFab) {
+      chatFab.classList.toggle('is-disabled', isDisabled);
+      chatFab.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+      chatFab.toggleAttribute('disabled', isDisabled);
+      if (isDisabled) {
+        chatFab.setAttribute('tabindex', '-1');
+        chatFab.blur();
+      } else {
+        chatFab.removeAttribute('tabindex');
+      }
+    }
+
+    if (isDisabled) {
+      chatPanel?.classList.remove('open');
+      chatPanel?.setAttribute('aria-hidden', 'true');
+      chatOverlay?.classList.remove('show');
+      if (window.ugelChatbot && typeof window.ugelChatbot.close === 'function') {
+        window.ugelChatbot.close();
+      }
+    }
+
+    dispatchMenuState(isDisabled);
+  };
+
   function toggleMenu(open){
-    const willOpen = (open===undefined) ? !menu.classList.contains('open') : open;
+    const willOpen = (open===undefined) ? !menu?.classList.contains('open') : open;
     menu?.classList.toggle('open', willOpen);
     back?.classList.toggle('show', willOpen);
     fab?.classList.toggle('open', willOpen);
-    fab?.setAttribute('aria-expanded', String(willOpen));
+    fab?.setAttribute('aria-expanded', String(!!willOpen));
     document.body.style.overflow = willOpen ? 'hidden' : '';
+    syncChatbot(willOpen);
   }
+  syncChatbot(false);
   if (!fab?.dataset.enhanced) {
     if (fab) {
       fab.addEventListener('click', ()=>toggleMenu());
