@@ -281,25 +281,53 @@ get_header(); ?>
             'order'          => 'DESC'
           ]);
           if ($q_conv->have_posts()): ?>
-            <div class="conv-grid">
-              <?php while ($q_conv->have_posts()): $q_conv->the_post(); 
-                $ttl = get_the_title();
-                $url = get_permalink();
-                $img = get_the_post_thumbnail_url(get_the_ID(), 'featured-large');
-                $sum = ugel_front_snippet(get_post(), 26);
+            <div class="conv-preview" role="list" aria-label="Listado rápido de convocatorias">
+              <?php while ($q_conv->have_posts()): $q_conv->the_post();
+                $ttl   = get_the_title();
+                $url   = get_permalink();
+                $meta  = ugel_get_convocatoria_meta(get_the_ID());
+                $state = ugel_get_convocatoria_status_details($meta['fecha_inicio'] ?? '', $meta['fecha_fin'] ?? '');
+                $slug  = isset($state['slug']) ? sanitize_html_class($state['slug']) : 'en_proceso';
+                $label = $state['label'] ?? __('En proceso', 'ugel-theme');
+                $indice = $meta['indice'] ?? '';
+                $tipo   = $meta['tipo'] ?? '';
+                $fi_raw = $meta['fecha_inicio'] ?? '';
+                $ff_raw = $meta['fecha_fin'] ?? '';
+                $fi     = ugel_format_convocatoria_date($fi_raw);
+                $ff     = ugel_format_convocatoria_date($ff_raw);
+                if ($fi && $ff) {
+                  $fecha_texto = sprintf(__('Del %1$s al %2$s', 'ugel-theme'), $fi, $ff);
+                } elseif ($fi) {
+                  $fecha_texto = sprintf(__('Desde el %s', 'ugel-theme'), $fi);
+                } elseif ($ff) {
+                  $fecha_texto = sprintf(__('Hasta el %s', 'ugel-theme'), $ff);
+                } else {
+                  $fecha_texto = __('Fecha por confirmar', 'ugel-theme');
+                }
+                $date_attr = $fi_raw ?: ($ff_raw ?: current_time('Y-m-d'));
               ?>
-              <article class="conv-card" itemscope itemtype="https://schema.org/Article">
-                <?php if ($img): ?>
-                  <figure class="conv-thumb">
-                    <img src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr($ttl); ?>" loading="lazy" itemprop="image">
-                  </figure>
-                <?php endif; ?>
-                <h3 class="conv-title" itemprop="headline">
-                  <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($ttl); ?></a>
-                </h3>
-                <?php if ($sum): ?><p class="conv-excerpt"><?php echo esc_html($sum); ?></p><?php endif; ?>
-                <div class="conv-actions">
-                  <a class="hub-btn" href="<?php echo esc_url($url); ?>" aria-label="Ver más sobre <?php echo esc_attr($ttl); ?>">Ver más</a>
+              <article class="conv-preview__item" itemscope itemtype="https://schema.org/Event" role="listitem">
+                <div class="conv-preview__main">
+                  <?php if (!empty($indice)): ?>
+                    <span class="conv-preview__index">#<?php echo esc_html($indice); ?></span>
+                  <?php endif; ?>
+                  <h3 class="conv-preview__title" itemprop="name">
+                    <a href="<?php echo esc_url($url); ?>" itemprop="url"><?php echo esc_html($ttl); ?></a>
+                  </h3>
+                  <?php if (!empty($tipo)): ?>
+                    <p class="conv-preview__type"><?php echo esc_html($tipo); ?></p>
+                  <?php endif; ?>
+                </div>
+                <div class="conv-preview__meta">
+                  <span class="conv-preview__status conv-preview__status--<?php echo esc_attr($slug); ?>"><?php echo esc_html($label); ?></span>
+                  <time class="conv-preview__date" datetime="<?php echo esc_attr($date_attr); ?>" itemprop="startDate">
+                    <?php echo esc_html($fecha_texto); ?>
+                  </time>
+                </div>
+                <div class="conv-preview__actions">
+                  <a class="conv-preview__link" href="<?php echo esc_url($url); ?>" aria-label="Ver convocatoria <?php echo esc_attr($ttl); ?>">
+                    <?php esc_html_e('Ver', 'ugel-theme'); ?>
+                  </a>
                 </div>
               </article>
               <?php endwhile; wp_reset_postdata(); ?>
