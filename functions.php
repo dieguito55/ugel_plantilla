@@ -62,6 +62,13 @@ class UGELTheme {
 
         // Tipografías (con display=swap ya incluido en URL)
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap', array(), null);
+
+        if (is_singular('convocatorias')) {
+            wp_enqueue_style('datatables-core', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css', array(), '1.13.6');
+            wp_enqueue_style('datatables-responsive', 'https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css', array('datatables-core'), '2.5.0');
+            wp_enqueue_script('datatables-core', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array('jquery'), '1.13.6', true);
+            wp_enqueue_script('datatables-responsive', 'https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js', array('datatables-core'), '2.5.0', true);
+        }
     }
 
     public function register_post_types() {
@@ -436,6 +443,74 @@ function get_convocatorias($limit = 3, $estado = null) {
         'post_status'    => 'publish'
     ));
 }
+
+function ugel_get_convocatoria_meta($post_id) {
+    $meta = array(
+        'indice'                    => get_post_meta($post_id, '_conv_indice', true),
+        'tipo'                      => get_post_meta($post_id, '_conv_tipo', true),
+        'descripcion'               => get_post_meta($post_id, '_conv_descripcion', true),
+        'fecha_inicio'              => get_post_meta($post_id, '_conv_fecha_inicio', true),
+        'fecha_fin'                 => get_post_meta($post_id, '_conv_fecha_fin', true),
+        'bases_pdf'                 => get_post_meta($post_id, '_conv_bases_pdf', true),
+        'resultado_preliminar_pdf'  => get_post_meta($post_id, '_conv_resultado_preliminar_pdf', true),
+        'resultado_final_curr_pdf'  => get_post_meta($post_id, '_conv_resultado_final_curricular_pdf', true),
+        'resultados_finales_pdf'    => get_post_meta($post_id, '_conv_resultados_finales_pdf', true),
+    );
+
+    foreach ($meta as $key => $value) {
+        $meta[$key] = is_string($value) ? trim($value) : $value;
+    }
+
+    return $meta;
+}
+
+function ugel_get_convocatoria_status_details($fecha_inicio, $fecha_fin) {
+    $today       = current_time('Y-m-d');
+    $inicio_raw  = $fecha_inicio ? substr($fecha_inicio, 0, 10) : '';
+    $fin_raw     = $fecha_fin ? substr($fecha_fin, 0, 10) : '';
+    $status      = 'en_proceso';
+    $label       = __('En proceso', 'ugel-theme');
+
+    if ($inicio_raw && $today < $inicio_raw) {
+        $status = 'programado';
+        $label  = __('Por iniciar', 'ugel-theme');
+    }
+
+    if ($fin_raw && $today > $fin_raw) {
+        $status = 'culminado';
+        $label  = __('Culminado', 'ugel-theme');
+    } elseif ($inicio_raw && (!$fin_raw || $today >= $inicio_raw)) {
+        $status = 'en_proceso';
+        $label  = __('En proceso', 'ugel-theme');
+        if ($fin_raw && $today > $fin_raw) {
+            $status = 'culminado';
+            $label  = __('Culminado', 'ugel-theme');
+        }
+    }
+
+    if (!$inicio_raw && $fin_raw && $today > $fin_raw) {
+        $status = 'culminado';
+        $label  = __('Culminado', 'ugel-theme');
+    }
+
+    return array(
+        'slug'  => $status,
+        'label' => $label,
+    );
+}
+
+function ugel_format_convocatoria_date($date_string) {
+    if (empty($date_string)) {
+        return '';
+    }
+
+    $timestamp = strtotime($date_string);
+    if (!$timestamp) {
+        return sanitize_text_field($date_string);
+    }
+
+    return esc_html( date_i18n('d/m/Y', $timestamp) );
+}
 function get_comunicados($limit = 3) {
     return get_posts(array(
         'post_type'      => 'comunicados',
@@ -485,6 +560,15 @@ function get_feature_cards($limit = 5) {
  * Meta boxes (slider, enlaces, tarjetas)
  * =========================================================== */
 add_action('add_meta_boxes', function() {
+    add_meta_box(
+        'convocatoria_detalles',
+        __('Detalles de la convocatoria', 'ugel-theme'),
+        'ugel_convocatoria_meta_box',
+        'convocatorias',
+        'normal',
+        'high'
+    );
+
     // Slider
     add_meta_box(
         'slide_meta',
@@ -515,6 +599,103 @@ add_action('add_meta_boxes', function() {
         'high'
     );
 });
+
+function ugel_convocatoria_meta_box($post) {
+    wp_nonce_field('convocatoria_meta_nonce', 'convocatoria_meta_nonce');
+    wp_enqueue_media();
+
+    $meta = ugel_get_convocatoria_meta($post->ID);
+
+    $fields = array(
+        'bases_pdf'                => __('PDF de Bases', 'ugel-theme'),
+        'resultado_preliminar_pdf' => __('Resultado Preliminar Curricular (PDF)', 'ugel-theme'),
+        'resultado_final_curr_pdf' => __('Resultado Final Curricular (PDF)', 'ugel-theme'),
+        'resultados_finales_pdf'   => __('Resultados Finales (PDF)', 'ugel-theme'),
+    );
+    ?>
+    <style>
+      .conv-meta-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-bottom:20px}
+      .conv-meta-field label {font-weight:600;color:#021F59;display:block;margin-bottom:6px}
+      .conv-meta-field input[type="text"],
+      .conv-meta-field input[type="number"],
+      .conv-meta-field input[type="date"],
+      .conv-meta-field textarea {width:100%;border:1px solid #d5dbe7;border-radius:8px;padding:10px;font-size:14px;box-sizing:border-box;background:#fff}
+      .conv-meta-field textarea{min-height:120px;resize:vertical}
+      .conv-meta-pdf {display:flex;gap:10px;align-items:center;margin-bottom:12px}
+      .conv-meta-pdf input[type="text"]{flex:1;border:1px solid #d5dbe7;border-radius:8px;padding:8px;font-size:14px;background:#fff}
+      .conv-meta-actions{margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px}
+      .conv-meta-grid .conv-meta-field small{display:block;margin-top:4px;color:#64748b;font-size:12px}
+    </style>
+    <div class="conv-meta-grid">
+      <div class="conv-meta-field">
+        <label for="conv_indice"><?php esc_html_e('Índice', 'ugel-theme'); ?></label>
+        <input type="text" id="conv_indice" name="conv_indice" value="<?php echo esc_attr($meta['indice']); ?>" placeholder="001-2024">
+        <small><?php esc_html_e('Identificador corto para la convocatoria.', 'ugel-theme'); ?></small>
+      </div>
+      <div class="conv-meta-field">
+        <label for="conv_tipo"><?php esc_html_e('Tipo de convocatoria', 'ugel-theme'); ?></label>
+        <input type="text" id="conv_tipo" name="conv_tipo" value="<?php echo esc_attr($meta['tipo']); ?>" placeholder="CAS, Nombramiento, Interna...">
+        <small><?php esc_html_e('Ejemplo: Concurso CAS, Capacitaciones, etc.', 'ugel-theme'); ?></small>
+      </div>
+      <div class="conv-meta-field">
+        <label for="conv_fecha_inicio"><?php esc_html_e('Fecha de inicio', 'ugel-theme'); ?></label>
+        <input type="date" id="conv_fecha_inicio" name="conv_fecha_inicio" value="<?php echo esc_attr($meta['fecha_inicio']); ?>">
+      </div>
+      <div class="conv-meta-field">
+        <label for="conv_fecha_fin"><?php esc_html_e('Fecha de fin', 'ugel-theme'); ?></label>
+        <input type="date" id="conv_fecha_fin" name="conv_fecha_fin" value="<?php echo esc_attr($meta['fecha_fin']); ?>">
+      </div>
+    </div>
+
+    <div class="conv-meta-field">
+      <label for="conv_descripcion"><?php esc_html_e('Descripción breve', 'ugel-theme'); ?></label>
+      <textarea id="conv_descripcion" name="conv_descripcion" placeholder="<?php esc_attr_e('Describe brevemente el proceso.', 'ugel-theme'); ?>"><?php echo esc_textarea($meta['descripcion']); ?></textarea>
+    </div>
+
+    <div class="conv-meta-actions">
+      <?php foreach ($fields as $key => $label):
+        $field_id = 'conv_' . $key;
+        $meta_key = $key;
+        $value    = isset($meta[$meta_key]) ? $meta[$meta_key] : '';
+      ?>
+        <div class="conv-meta-pdf">
+          <label for="<?php echo esc_attr($field_id); ?>" style="min-width:260px;font-weight:600;color:#021F59;">
+            <?php echo esc_html($label); ?>
+          </label>
+          <input type="text" id="<?php echo esc_attr($field_id); ?>" name="<?php echo esc_attr($field_id); ?>" value="<?php echo esc_url($value); ?>" placeholder="https://... .pdf">
+          <button type="button" class="button button-secondary" data-target="<?php echo esc_attr($field_id); ?>"><?php esc_html_e('Elegir', 'ugel-theme'); ?></button>
+        </div>
+      <?php endforeach; ?>
+    </div>
+
+    <script>
+    (function(){
+      const buttons = document.querySelectorAll('#convocatoria_detalles [data-target]');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', function(){
+          const targetId = this.getAttribute('data-target');
+          const input    = document.getElementById(targetId);
+          if (!input) return;
+
+          const frame = wp.media({
+            title: '<?php echo esc_js(__('Selecciona un PDF', 'ugel-theme')); ?>',
+            library: { type: 'application/pdf' },
+            button: { text: '<?php echo esc_js(__('Usar este PDF', 'ugel-theme')); ?>' },
+            multiple: false
+          });
+
+          frame.on('select', function(){
+            const file = frame.state().get('selection').first().toJSON();
+            input.value = file.url || '';
+          });
+
+          frame.open();
+        });
+      });
+    })();
+    </script>
+    <?php
+}
 
 function slide_meta_callback($post) {
     wp_nonce_field('slide_meta_nonce', 'slide_meta_nonce');
@@ -640,6 +821,39 @@ add_action('save_post', function($post_id) {
         if (isset($_POST['enlace_url']))    update_post_meta($post_id, '_enlace_url', esc_url_raw(wp_unslash($_POST['enlace_url'])));
         if (isset($_POST['enlace_target'])) update_post_meta($post_id, '_enlace_target', sanitize_text_field(wp_unslash($_POST['enlace_target'])));
         if (isset($_POST['icono_svg']))     update_post_meta($post_id, '_icono_svg', ugel_sanitize_svg(wp_unslash($_POST['icono_svg'])));
+    }
+
+    if (isset($_POST['convocatoria_meta_nonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['convocatoria_meta_nonce'])), 'convocatoria_meta_nonce')) {
+        $map = array(
+            'conv_indice'                     => array('_conv_indice', 'sanitize_text_field'),
+            'conv_tipo'                       => array('_conv_tipo', 'sanitize_text_field'),
+            'conv_descripcion'                => array('_conv_descripcion', 'wp_kses_post'),
+            'conv_fecha_inicio'               => array('_conv_fecha_inicio', 'sanitize_text_field'),
+            'conv_fecha_fin'                  => array('_conv_fecha_fin', 'sanitize_text_field'),
+            'conv_bases_pdf'                  => array('_conv_bases_pdf', 'esc_url_raw'),
+            'conv_resultado_preliminar_pdf'   => array('_conv_resultado_preliminar_pdf', 'esc_url_raw'),
+            'conv_resultado_final_curr_pdf'   => array('_conv_resultado_final_curricular_pdf', 'esc_url_raw'),
+            'conv_resultados_finales_pdf'     => array('_conv_resultados_finales_pdf', 'esc_url_raw'),
+        );
+
+        foreach ($map as $field => $settings) {
+            list($meta_key, $sanitize_cb) = $settings;
+            $value = isset($_POST[$field]) ? wp_unslash($_POST[$field]) : '';
+
+            if ($sanitize_cb === 'esc_url_raw') {
+                $clean = $value ? esc_url_raw($value) : '';
+            } elseif ($sanitize_cb === 'wp_kses_post') {
+                $clean = $value ? wp_kses_post($value) : '';
+            } else {
+                $clean = $value ? call_user_func($sanitize_cb, $value) : '';
+            }
+
+            if (!empty($clean)) {
+                update_post_meta($post_id, $meta_key, $clean);
+            } else {
+                delete_post_meta($post_id, $meta_key);
+            }
+        }
     }
 });
 
