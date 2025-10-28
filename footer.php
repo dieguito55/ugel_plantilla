@@ -170,7 +170,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // ========== SOLO CÓDIGO DEL MENÚ/CARRUSEL ==========
+  /* Menu and hero fallback handlers */
   function splitMenuLabels(selector){
     const links = document.querySelectorAll(selector);
     links.forEach(a=>{
@@ -192,7 +192,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   splitMenuLabels('.menu > a, .menu .menu-item > a');
 
-  // FAB móvil
   const $ = s => document.querySelector(s);
   const fab = $('#menuFab'), menu = $('#mobileMenu'), back = $('#mobileBackdrop');
   if (fab) { document.body.classList.add('has-mobile-fab'); }
@@ -215,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', e=>{ if(e.key==='Escape') toggleMenu(false) });
   }
 
-  // Subheader "pegado"
+  /* Sticky subheader fallback */
   (function stickSubheaderOnScroll(){
     const onScroll = () => {
       if (window.scrollY > 10) document.body.classList.add('nav-stick-subheader');
@@ -225,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('scroll', onScroll, {passive:true});
   })();
 
-  // Carrusel
+  /* Hero carousel fallback */
   (function initHero(){
     const track = document.getElementById('heroTrack');
     if(!track || track.dataset.enhanced) return;
@@ -280,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (slides.length > 1) play();
   })();
 
-  // ========== FUNCIONES DE COMPATIBILIDAD PARA CHATBOT ==========
+  /* Chatbot compatibility bridges */
   window.toggleChat = function() {
     if (window.ugelChatbot) {
       window.ugelChatbot.toggle();
