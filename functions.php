@@ -172,6 +172,28 @@ class UGELTheme {
             'menu_icon'    => 'dashicons-screenoptions',
             'show_in_rest' => true
         ));
+
+        register_post_type('anuncios_portada', array(
+            'labels' => array(
+                'name'               => __('Anuncios de Inicio', 'ugel-theme'),
+                'singular_name'      => __('Anuncio', 'ugel-theme'),
+                'add_new'            => __('Agregar Nuevo', 'ugel-theme'),
+                'add_new_item'       => __('Agregar Nuevo Anuncio', 'ugel-theme'),
+                'edit_item'          => __('Editar Anuncio', 'ugel-theme'),
+                'new_item'           => __('Nuevo Anuncio', 'ugel-theme'),
+                'view_item'          => __('Ver Anuncio', 'ugel-theme'),
+                'search_items'       => __('Buscar Anuncios', 'ugel-theme'),
+                'not_found'          => __('No se encontraron anuncios', 'ugel-theme'),
+                'not_found_in_trash' => __('No hay anuncios en la papelera', 'ugel-theme'),
+            ),
+            'public'       => false,
+            'show_ui'      => true,
+            'show_in_menu' => true,
+            'has_archive'  => false,
+            'supports'     => array('title', 'editor', 'thumbnail', 'excerpt', 'page-attributes'),
+            'menu_icon'    => 'dashicons-megaphone',
+            'show_in_rest' => true,
+        ));
     }
 
     // SIN taxonomías extras para convocatorias (se deja el método vacío por compatibilidad)

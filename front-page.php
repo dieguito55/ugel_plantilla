@@ -1,5 +1,8 @@
 <?php
-get_header(); ?>
+get_header();
+
+get_template_part('template-parts/front-announcements');
+?>
 
 <section class="hero-carousel" aria-label="Carrusel principal" data-theme="institutional">
   <div class="hero-track" id="heroTrack">
