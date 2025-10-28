@@ -63,7 +63,7 @@ class UGELTheme {
         // Tipografías (con display=swap ya incluido en URL)
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap', array(), null);
 
-        if (is_page_template('convocatoria.php') || is_page('convocatoria')) {
+        if (is_singular('convocatorias')) {
             wp_enqueue_style('datatables-core', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css', array(), '1.13.6');
             wp_enqueue_style('datatables-responsive', 'https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css', array('datatables-core'), '2.5.0');
             wp_enqueue_script('datatables-core', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array('jquery'), '1.13.6', true);

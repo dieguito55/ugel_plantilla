@@ -1,7 +1,6 @@
 <?php
 /**
- * Template Name: Convocatorias
- * Description: Listado general de convocatorias con tabla interactiva y descargas.
+ * Plantilla de convocatoria individual con tabla y adjuntos.
  */
 
 if (!defined('ABSPATH')) {
@@ -9,203 +8,394 @@ if (!defined('ABSPATH')) {
 }
 
 get_header();
-
-$page_object   = get_queried_object();
-$page_title    = $page_object ? get_the_title($page_object) : __('Convocatorias', 'ugel-theme');
-$page_excerpt  = '';
-$page_content  = '';
-$page_url      = $page_object ? get_permalink($page_object) : home_url('/convocatoria/');
-
-if ($page_object instanceof WP_Post) {
-  if (!empty($page_object->post_excerpt)) {
-    $page_excerpt = wpautop($page_object->post_excerpt);
-  } elseif (!empty($page_object->post_content)) {
-    $page_content = apply_filters('the_content', $page_object->post_content);
-  }
-}
-
-$highlight_id  = isset($_GET['convocatoria']) ? absint($_GET['convocatoria']) : 0;
-$conv_query    = get_posts(array(
-  'post_type'      => 'convocatorias',
-  'posts_per_page' => -1,
-  'post_status'    => 'publish',
-  'orderby'        => 'date',
-  'order'          => 'DESC',
-));
-
-$documents_map = array(
-  'bases_pdf'                => __('Bases', 'ugel-theme'),
-  'resultado_preliminar_pdf' => __('Resultado Preliminar Curricular', 'ugel-theme'),
-  'resultado_final_curr_pdf' => __('Resultado Final Curricular', 'ugel-theme'),
-  'resultados_finales_pdf'   => __('Resultados Finales', 'ugel-theme'),
-);
 ?>
 
-<section class="convocatorias-archive" aria-label="Convocatorias disponibles">
+<section class="convocatoria-detail" aria-label="Detalle de la convocatoria">
   <div class="wrap">
-    <div class="convocatorias-panel">
-      <header class="convocatorias-archive__header">
-        <span class="convocatorias-archive__badge"><?php esc_html_e('Procesos vigentes y culminados', 'ugel-theme'); ?></span>
-        <h1 class="convocatorias-archive__title"><?php echo esc_html($page_title); ?></h1>
-        <?php if ($page_excerpt): ?>
-          <div class="convocatorias-archive__summary"><?php echo wp_kses_post($page_excerpt); ?></div>
-        <?php elseif ($page_content): ?>
-          <div class="convocatorias-archive__summary"><?php echo wp_kses_post($page_content); ?></div>
-        <?php endif; ?>
+    <div class="convocatoria-shell">
+      <?php if (have_posts()) : while (have_posts()) : the_post();
+        $post_id   = get_the_ID();
+        $meta      = ugel_get_convocatoria_meta($post_id);
+        $estado    = ugel_get_convocatoria_status_details($meta['fecha_inicio'] ?? '', $meta['fecha_fin'] ?? '');
+        $slug      = isset($estado['slug']) ? sanitize_html_class($estado['slug']) : 'en_proceso';
+        $label     = $estado['label'] ?? __('En proceso', 'ugel-theme');
+        $indice    = $meta['indice'] ?? '';
+        $tipo      = $meta['tipo'] ?? '';
+        $fi        = $meta['fecha_inicio'] ?? '';
+        $ff        = $meta['fecha_fin'] ?? '';
+        $fi_fmt    = ugel_format_convocatoria_date($fi);
+        $ff_fmt    = ugel_format_convocatoria_date($ff);
+        $rango     = '';
+        if ($fi_fmt && $ff_fmt) {
+          $rango = sprintf(__('Del %1$s al %2$s', 'ugel-theme'), $fi_fmt, $ff_fmt);
+        } elseif ($fi_fmt) {
+          $rango = sprintf(__('Desde el %s', 'ugel-theme'), $fi_fmt);
+        } elseif ($ff_fmt) {
+          $rango = sprintf(__('Hasta el %s', 'ugel-theme'), $ff_fmt);
+        }
+
+        $pdfs = array(
+          'bases_pdf' => array(
+            'label' => __('Bases', 'ugel-theme'),
+            'meta'  => $meta['bases_pdf'] ?? '',
+          ),
+          'resultado_preliminar_pdf' => array(
+            'label' => __('Resultado Preliminar Curricular', 'ugel-theme'),
+            'meta'  => $meta['resultado_preliminar_pdf'] ?? '',
+          ),
+          'resultado_final_curr_pdf' => array(
+            'label' => __('Resultado Final Curricular', 'ugel-theme'),
+            'meta'  => $meta['resultado_final_curr_pdf'] ?? '',
+          ),
+          'resultados_finales_pdf' => array(
+            'label' => __('Resultados Finales', 'ugel-theme'),
+            'meta'  => $meta['resultados_finales_pdf'] ?? '',
+          ),
+        );
+      ?>
+      <header class="convocatoria-head">
+        <nav class="convocatoria-breadcrumbs" aria-label="Ruta de navegación">
+          <a href="<?php echo esc_url(home_url('/')); ?>"><?php esc_html_e('Inicio', 'ugel-theme'); ?></a>
+          <span class="separator">›</span>
+          <a href="<?php echo esc_url(get_post_type_archive_link('convocatorias')); ?>"><?php esc_html_e('Convocatorias', 'ugel-theme'); ?></a>
+          <span class="separator">›</span>
+          <span class="current"><?php the_title(); ?></span>
+        </nav>
+
+        <div class="convocatoria-head__content">
+          <?php if (!empty($tipo)) : ?>
+            <span class="convocatoria-head__tag"><?php echo esc_html($tipo); ?></span>
+          <?php endif; ?>
+          <h1 class="convocatoria-head__title"><?php the_title(); ?></h1>
+          <?php if (!empty($meta['descripcion'])) : ?>
+            <div class="convocatoria-head__summary"><?php echo wp_kses_post(wpautop($meta['descripcion'])); ?></div>
+          <?php elseif (has_excerpt()) : ?>
+            <div class="convocatoria-head__summary"><?php echo wp_kses_post(wpautop(get_the_excerpt())); ?></div>
+          <?php endif; ?>
+        </div>
       </header>
 
-      <div class="convocatorias-table__wrap" id="convocatoriasTable" data-highlight="<?php echo esc_attr($highlight_id); ?>">
-        <?php if (!empty($conv_query)): ?>
-          <table id="tablaConvocatorias" class="convocatorias-table display nowrap" style="width:100%">
-            <thead>
-              <tr>
-                <th><?php esc_html_e('Índice', 'ugel-theme'); ?></th>
-                <th><?php esc_html_e('Convocatoria', 'ugel-theme'); ?></th>
-                <th><?php esc_html_e('Tipo', 'ugel-theme'); ?></th>
-                <th><?php esc_html_e('Fecha de inicio', 'ugel-theme'); ?></th>
-                <th><?php esc_html_e('Estado', 'ugel-theme'); ?></th>
-                <?php foreach ($documents_map as $label): ?>
-                  <th><?php echo esc_html($label); ?></th>
-                <?php endforeach; ?>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($conv_query as $conv_post):
-                $meta         = ugel_get_convocatoria_meta($conv_post->ID);
-                $indice       = $meta['indice'] ?? '';
-                $tipo         = $meta['tipo'] ?? '';
-                $fi_raw       = $meta['fecha_inicio'] ?? '';
-                $ff_raw       = $meta['fecha_fin'] ?? '';
-                $fi           = ugel_format_convocatoria_date($fi_raw);
-                $ff           = ugel_format_convocatoria_date($ff_raw);
-                $estado       = ugel_get_convocatoria_status_details($fi_raw, $ff_raw);
-                $estado_slug  = isset($estado['slug']) ? sanitize_html_class($estado['slug']) : 'en_proceso';
-                $estado_label = $estado['label'] ?? __('En proceso', 'ugel-theme');
-                $order_date   = $fi_raw ? strtotime($fi_raw) : false;
-                if (!$order_date && $ff_raw) {
-                  $order_date = strtotime($ff_raw);
-                }
-                if (!$order_date) {
-                  $order_date = get_post_time('U', true, $conv_post);
-                }
-                $order_date = $order_date ?: time();
+      <div class="convocatoria-table__wrapper">
+        <table id="convocatoria-table" class="convocatoria-table display nowrap" style="width:100%">
+          <thead>
+            <tr>
+              <th><?php esc_html_e('Índice', 'ugel-theme'); ?></th>
+              <th><?php esc_html_e('Convocatoria', 'ugel-theme'); ?></th>
+              <th><?php esc_html_e('Tipo', 'ugel-theme'); ?></th>
+              <th><?php esc_html_e('Fecha', 'ugel-theme'); ?></th>
+              <th><?php esc_html_e('Estado', 'ugel-theme'); ?></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><?php echo $indice ? esc_html($indice) : '—'; ?></td>
+              <td><?php echo esc_html(get_the_title()); ?></td>
+              <td><?php echo $tipo ? esc_html($tipo) : '—'; ?></td>
+              <td>
+                <?php if ($rango) : ?>
+                  <span><?php echo esc_html($rango); ?></span>
+                <?php else : ?>
+                  <span><?php esc_html_e('No especificada', 'ugel-theme'); ?></span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <span class="convocatoria-chip convocatoria-chip--<?php echo esc_attr($slug); ?>"><?php echo esc_html($label); ?></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-                if ($fi && $ff) {
-                  $fecha_texto = sprintf(__('Del %1$s al %2$s', 'ugel-theme'), $fi, $ff);
-                } elseif ($fi) {
-                  $fecha_texto = sprintf(__('Desde el %s', 'ugel-theme'), $fi);
-                } elseif ($ff) {
-                  $fecha_texto = sprintf(__('Hasta el %s', 'ugel-theme'), $ff);
-                } else {
-                  $fecha_texto = __('Fecha por definir', 'ugel-theme');
-                }
+      <section class="convocatoria-pdfs" aria-label="Documentos de la convocatoria">
+        <h2 class="convocatoria-pdfs__title"><?php esc_html_e('Documentos oficiales', 'ugel-theme'); ?></h2>
+        <div class="convocatoria-pdfs__grid">
+          <?php foreach ($pdfs as $key => $info) :
+            $url        = $info['meta'];
+            $label_pdf  = $info['label'];
+            $has_pdf    = !empty($url);
+            $gradient_id = 'pdfGradient-' . sanitize_html_class($key);
+          ?>
+          <article class="convocatoria-pdf <?php echo $has_pdf ? 'convocatoria-pdf--active' : 'convocatoria-pdf--empty'; ?>">
+            <div class="convocatoria-pdf__icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" width="48" height="48" role="img" focusable="false">
+                <defs>
+                  <linearGradient id="<?php echo esc_attr($gradient_id); ?>" x1="0%" x2="100%" y1="0%" y2="100%">
+                    <stop offset="0%" stop-color="#000C97" />
+                    <stop offset="50%" stop-color="#021F59" />
+                    <stop offset="100%" stop-color="#8297FE" />
+                  </linearGradient>
+                </defs>
+                <path fill="url(#<?php echo esc_attr($gradient_id); ?>)" d="M32 4H14a4 4 0 0 0-4 4v32a4 4 0 0 0 4 4h20a4 4 0 0 0 4-4V12L32 4z" opacity="0.12"></path>
+                <path fill="url(#<?php echo esc_attr($gradient_id); ?>)" d="M32 4l6 8h-6z" opacity="0.3"></path>
+                <path fill="#FFFFFF" d="M18 20h12v2H18zm0 6h12v2H18zm0 6h8v2h-8z"></path>
+                <path fill="url(#<?php echo esc_attr($gradient_id); ?>)" d="M18 12h6v6h-6z" opacity="0.35"></path>
+              </svg>
+            </div>
+            <div class="convocatoria-pdf__content">
+              <h3 class="convocatoria-pdf__title"><?php echo esc_html($label_pdf); ?></h3>
+              <?php if ($has_pdf) : ?>
+                <a class="convocatoria-pdf__link" href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener noreferrer">
+                  <?php esc_html_e('Descargar PDF', 'ugel-theme'); ?>
+                </a>
+              <?php else : ?>
+                <span class="convocatoria-pdf__missing"><?php esc_html_e('Documento no disponible', 'ugel-theme'); ?></span>
+              <?php endif; ?>
+            </div>
+          </article>
+          <?php endforeach; ?>
+        </div>
+      </section>
 
-                $row_class = $highlight_id === $conv_post->ID ? ' is-highlight' : '';
-                $row_url   = add_query_arg('convocatoria', $conv_post->ID, $page_url);
-              ?>
-              <tr class="convocatorias-table__row<?php echo esc_attr($row_class); ?>" data-convocatoria="<?php echo esc_attr($conv_post->ID); ?>">
-                <td data-title="<?php esc_attr_e('Índice', 'ugel-theme'); ?>">
-                  <?php echo $indice ? esc_html($indice) : '—'; ?>
-                </td>
-                <td data-title="<?php esc_attr_e('Convocatoria', 'ugel-theme'); ?>">
-                  <a href="<?php echo esc_url($row_url); ?>" class="convocatorias-table__link"><?php echo esc_html(get_the_title($conv_post)); ?></a>
-                </td>
-                <td data-title="<?php esc_attr_e('Tipo', 'ugel-theme'); ?>">
-                  <?php echo $tipo ? esc_html($tipo) : '—'; ?>
-                </td>
-                <td data-title="<?php esc_attr_e('Fecha de inicio', 'ugel-theme'); ?>" data-order="<?php echo esc_attr($order_date); ?>">
-                  <span class="convocatorias-table__date"><?php echo esc_html($fecha_texto); ?></span>
-                  <?php if ($fi && $ff): ?>
-                    <small class="convocatorias-table__date-range"><?php echo esc_html($fi . ' – ' . $ff); ?></small>
-                  <?php endif; ?>
-                </td>
-                <td data-title="<?php esc_attr_e('Estado', 'ugel-theme'); ?>">
-                  <span class="convocatoria-chip convocatoria-chip--<?php echo esc_attr($estado_slug); ?>"><?php echo esc_html($estado_label); ?></span>
-                </td>
-                <?php foreach ($documents_map as $meta_key => $label):
-                  $doc_url = isset($meta[$meta_key]) ? $meta[$meta_key] : '';
-                ?>
-                <td data-title="<?php echo esc_attr($label); ?>" class="convocatorias-table__doc">
-                  <?php if (!empty($doc_url)): ?>
-                    <a class="convocatorias-table__doc-link" href="<?php echo esc_url($doc_url); ?>" target="_blank" rel="noopener">
-                      <span class="screen-reader-text"><?php printf(esc_html__('Descargar %s', 'ugel-theme'), esc_html($label)); ?></span>
-                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 2v4h4"/><path d="M8 13h8v2H8zm0 4h8v2H8zm0-8h4v2H8z"/></svg>
-                    </a>
-                  <?php else: ?>
-                    <span class="convocatorias-table__doc-empty" aria-hidden="true">—</span>
-                  <?php endif; ?>
-                </td>
-                <?php endforeach; ?>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        <?php else: ?>
-          <div class="convocatorias-empty">
-            <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M12 8h28l12 12v28a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V16a8 8 0 0 1 8-8Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M40 8v12h12" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M19 32h26M19 42h26M19 22h10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
-            <p><?php esc_html_e('Aún no hay convocatorias registradas.', 'ugel-theme'); ?></p>
+      <section class="convocatoria-body" aria-label="Contenido adicional de la convocatoria">
+        <?php if (get_the_content()) : ?>
+          <div class="convocatoria-body__content">
+            <?php the_content(); ?>
           </div>
         <?php endif; ?>
-      </div>
+      </section>
+
+      <?php endwhile; endif; ?>
     </div>
   </div>
 </section>
 
-<?php if (!empty($conv_query)): ?>
-  <script>
-    jQuery(function($){
-      var $table = $('#tablaConvocatorias');
-      if(!$table.length) return;
+<style>
+  .convocatoria-detail {
+    padding: clamp(48px, 6vw, 72px) 0;
+    background: linear-gradient(180deg, #F5F8FF 0%, #FFFFFF 50%, #F8FAFF 100%);
+  }
+  .convocatoria-shell {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(32px, 5vw, 48px);
+  }
+  .convocatoria-head {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    background: #FFFFFF;
+    border: 1px solid rgba(130, 151, 254, 0.18);
+    border-radius: 20px;
+    padding: clamp(24px, 4vw, 36px);
+    box-shadow:
+      0 12px 38px rgba(2, 31, 89, 0.08),
+      0 6px 20px rgba(2, 31, 89, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+  .convocatoria-breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #475569;
+  }
+  .convocatoria-breadcrumbs a {
+    color: #021F59;
+    text-decoration: none;
+  }
+  .convocatoria-breadcrumbs a:hover {
+    color: #000C97;
+    text-decoration: underline;
+  }
+  .convocatoria-breadcrumbs .separator {
+    color: rgba(2, 31, 89, 0.4);
+  }
+  .convocatoria-head__tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(0, 12, 151, 0.12);
+    color: #000C97;
+    font-weight: 700;
+    font-size: 0.85rem;
+    width: max-content;
+  }
+  .convocatoria-head__title {
+    margin: 0;
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    font-weight: 900;
+    color: #021F59;
+    line-height: 1.2;
+  }
+  .convocatoria-head__summary {
+    margin: 0;
+    color: #475569;
+    font-size: 1rem;
+    max-width: 760px;
+  }
+  .convocatoria-head__summary p {
+    margin: 0 0 0.75em 0;
+  }
+  .convocatoria-head__summary p:last-child {
+    margin-bottom: 0;
+  }
+  .convocatoria-table__wrapper {
+    background: #FFFFFF;
+    border-radius: 20px;
+    border: 1px solid rgba(130, 151, 254, 0.18);
+    padding: 24px;
+    box-shadow:
+      0 10px 32px rgba(2, 31, 89, 0.07),
+      0 4px 16px rgba(2, 31, 89, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+  table.convocatoria-table {
+    width: 100% !important;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  .convocatoria-table thead th {
+    background: linear-gradient(120deg, rgba(0, 12, 151, 0.08), rgba(2, 31, 89, 0.04));
+    color: #021F59;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 14px;
+    border-bottom: 2px solid rgba(0, 12, 151, 0.12);
+  }
+  .convocatoria-table tbody td {
+    padding: 16px 14px;
+    border-bottom: 1px solid rgba(130, 151, 254, 0.12);
+    color: #0F172A;
+    font-weight: 600;
+  }
+  .convocatoria-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+  .convocatoria-chip--programado {
+    background: rgba(130, 151, 254, 0.18);
+    color: #021F59;
+  }
+  .convocatoria-chip--en_proceso {
+    background: rgba(0, 12, 151, 0.16);
+    color: #FFFFFF;
+  }
+  .convocatoria-chip--culminado {
+    background: rgba(148, 163, 184, 0.18);
+    color: #334155;
+  }
+  .convocatoria-pdfs {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .convocatoria-pdfs__title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #021F59;
+  }
+  .convocatoria-pdfs__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .convocatoria-pdf {
+    background: #FFFFFF;
+    border-radius: 18px;
+    border: 1px solid rgba(130, 151, 254, 0.16);
+    padding: 18px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    box-shadow:
+      0 10px 28px rgba(2, 31, 89, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .convocatoria-pdf--empty {
+    background: linear-gradient(135deg, rgba(130, 151, 254, 0.08), rgba(178, 255, 255, 0.08));
+    border-style: dashed;
+    opacity: 0.85;
+  }
+  .convocatoria-pdf--active:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 32px rgba(2, 31, 89, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
+  .convocatoria-pdf__icon {
+    flex-shrink: 0;
+  }
+  .convocatoria-pdf__title {
+    margin: 0 0 6px 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #021F59;
+  }
+  .convocatoria-pdf__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: #000C97;
+    text-decoration: none;
+  }
+  .convocatoria-pdf__link::after {
+    content: '↗';
+    font-size: 0.85rem;
+  }
+  .convocatoria-pdf__link:hover {
+    text-decoration: underline;
+  }
+  .convocatoria-pdf__missing {
+    font-size: 0.9rem;
+    color: #94A3B8;
+  }
+  .convocatoria-body__content {
+    background: #FFFFFF;
+    border-radius: 18px;
+    border: 1px solid rgba(130, 151, 254, 0.16);
+    padding: clamp(24px, 4vw, 36px);
+    box-shadow:
+      0 12px 34px rgba(2, 31, 89, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  }
+  .convocatoria-body__content h2,
+  .convocatoria-body__content h3,
+  .convocatoria-body__content h4 {
+    color: #021F59;
+    font-weight: 800;
+  }
+  .convocatoria-body__content a {
+    color: #000C97;
+    font-weight: 700;
+  }
+  @media (max-width: 768px) {
+    .convocatoria-table__wrapper {
+      padding: 18px;
+    }
+    .convocatoria-pdfs__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
 
-      var dataTable = $table.DataTable({
+<script>
+  jQuery(function($) {
+    var $table = $('#convocatoria-table');
+    if ($table.length && $.fn.DataTable) {
+      $table.DataTable({
         responsive: true,
         pageLength: 10,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, '<?php echo esc_js(__('Todos', 'ugel-theme')); ?>']],
-        order: [[3, 'desc']],
         language: {
-          decimal: '',
-          emptyTable: '<?php echo esc_js(__('No hay registros disponibles', 'ugel-theme')); ?>',
-          info: '<?php echo esc_js(__('Mostrando _START_ a _END_ de _TOTAL_ convocatorias', 'ugel-theme')); ?>',
-          infoEmpty: '<?php echo esc_js(__('Mostrando 0 a 0 de 0 convocatorias', 'ugel-theme')); ?>',
-          infoFiltered: '<?php echo esc_js(__('(filtrado de _MAX_ convocatorias en total)', 'ugel-theme')); ?>',
-          lengthMenu: '<?php echo esc_js(__('Mostrar _MENU_ filas', 'ugel-theme')); ?>',
-          loadingRecords: '<?php echo esc_js(__('Cargando…', 'ugel-theme')); ?>',
-          processing: '<?php echo esc_js(__('Procesando…', 'ugel-theme')); ?>',
-          search: '<?php echo esc_js(__('Buscar:', 'ugel-theme')); ?>',
-          zeroRecords: '<?php echo esc_js(__('No se encontraron coincidencias', 'ugel-theme')); ?>',
-          paginate: {
-            first: '<?php echo esc_js(__('Primero', 'ugel-theme')); ?>',
-            last: '<?php echo esc_js(__('Último', 'ugel-theme')); ?>',
-            next: '<?php echo esc_js(__('Siguiente', 'ugel-theme')); ?>',
-            previous: '<?php echo esc_js(__('Anterior', 'ugel-theme')); ?>'
-          }
-        }
+          url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+        },
+        order: []
       });
+    }
+  });
+</script>
 
-      var highlightId = parseInt($('#convocatoriasTable').data('highlight'), 10) || 0;
-      if (highlightId) {
-        var $row = $table.find('tbody tr[data-convocatoria="' + highlightId + '"]');
-        if ($row.length) {
-          var rowIndex = dataTable.row($row).index();
-          if (typeof rowIndex === 'number') {
-            var info = dataTable.page.info();
-            var rowsPerPage = info ? info.length : 10;
-            if (!rowsPerPage || rowsPerPage === -1) {
-              rowsPerPage = dataTable.rows().count();
-            }
-            var targetPage = rowsPerPage ? Math.floor(rowIndex / rowsPerPage) : 0;
-            dataTable.page(targetPage).draw(false);
-            setTimeout(function(){
-              var $targetRow = $table.find('tbody tr[data-convocatoria="' + highlightId + '"]');
-              $targetRow.addClass('is-highlighted');
-              $targetRow[0].scrollIntoView({behavior: 'smooth', block: 'center'});
-            }, 120);
-          }
-        }
-      }
-    });
-  </script>
-<?php endif; ?>
-
-<?php
-get_footer();
+<?php get_footer(); ?>

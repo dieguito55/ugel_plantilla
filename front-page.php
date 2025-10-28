@@ -288,7 +288,7 @@ get_header(); ?>
             <div class="conv-preview" role="list" aria-label="Listado rápido de convocatorias">
               <?php while ($q_conv->have_posts()): $q_conv->the_post();
                 $ttl   = get_the_title();
-                $url   = add_query_arg('convocatoria', get_the_ID(), $convocatoria_url);
+                $url   = get_permalink();
                 $meta  = ugel_get_convocatoria_meta(get_the_ID());
                 $state = ugel_get_convocatoria_status_details($meta['fecha_inicio'] ?? '', $meta['fecha_fin'] ?? '');
                 $slug  = isset($state['slug']) ? sanitize_html_class($state['slug']) : 'en_proceso';
