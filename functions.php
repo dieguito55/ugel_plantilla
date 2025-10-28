@@ -55,9 +55,10 @@ class UGELTheme {
         wp_enqueue_script('ugel-main-script', get_template_directory_uri() . '/assets/js/main.js', array('jquery'), '1.0.0', true);
 
         wp_localize_script('ugel-main-script', 'ugel_ajax', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => wp_create_nonce('ugel_nonce'),
-            'theme_url'=> get_template_directory_uri()
+            'ajax_url'   => admin_url('admin-ajax.php'),
+            'nonce'      => wp_create_nonce('ugel_nonce'),
+            'theme_url'  => get_template_directory_uri(),
+            'site_views' => function_exists('ugel_get_site_views') ? ugel_get_site_views() : 0,
         ));
 
         // Tipografías (con display=swap ya incluido en URL)
@@ -412,6 +413,51 @@ class UGELTheme {
 }
 
 new UGELTheme();
+
+/* =========================
+ * Contador de visitas del sitio (global)
+ * - Cuenta visitas para todo el sitio, no por página individual
+ * - Usa cookie de enfriamiento para evitar múltiples incrementos en minutos seguidos
+ * ========================= */
+function ugel_count_site_view() {
+    if (is_user_logged_in() && current_user_can('manage_options')) {
+        // Evitar contaminar el contador con navegaciones de administradores
+        return;
+    }
+
+    $cookie_name = 'ugel_sv';
+    $cooldown    = 30 * MINUTE_IN_SECONDS; // 30 minutos
+    $now         = time();
+
+    $last = isset($_COOKIE[$cookie_name]) ? intval($_COOKIE[$cookie_name]) : 0;
+    if (($now - $last) < $cooldown) {
+        return; // ya contado recientemente
+    }
+
+    // Incrementar contador atómico en options
+    $total = get_option('ugel_site_views_total', 0);
+    $total = is_numeric($total) ? intval($total) : 0;
+    $total++;
+    update_option('ugel_site_views_total', $total, false);
+
+    // Refrescar cookie de enfriamiento
+    setcookie($cookie_name, (string)$now, $now + $cooldown, COOKIEPATH ?: '/', COOKIE_DOMAIN, is_ssl(), true);
+}
+add_action('template_redirect', 'ugel_count_site_view');
+
+function ugel_get_site_views() {
+    $total = get_option('ugel_site_views_total', 0);
+    return max(0, intval($total));
+}
+
+function ugel_the_site_views($label = true) {
+    $n = number_format_i18n(ugel_get_site_views());
+    if ($label) {
+        echo '<span class="site-views" aria-label="Visitas al sitio">Visitas: ' . esc_html($n) . '</span>';
+    } else {
+        echo esc_html($n);
+    }
+}
 
 /* =========================
  * Habilitar categoría en CPT de forma explícita

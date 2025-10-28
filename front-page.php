@@ -319,9 +319,6 @@ get_header(); ?>
               ?>
               <article class="conv-preview__item" itemscope itemtype="https://schema.org/Event" role="listitem">
                 <div class="conv-preview__main">
-                  <?php if (!empty($indice)): ?>
-                    <span class="conv-preview__index">#<?php echo esc_html($indice); ?></span>
-                  <?php endif; ?>
                   <h3 class="conv-preview__title" itemprop="name">
                     <a href="<?php echo esc_url($highlight_url); ?>" itemprop="url"><?php echo esc_html($ttl); ?></a>
                   </h3>
@@ -356,40 +353,52 @@ get_header(); ?>
 <?php get_template_part('template-parts/contenidovisual'); ?>
 
 <section class="interest-links" aria-label="Enlaces de interés">
-  <div class="wrap">
-    <div class="interest-links__header">
-      <h2 class="interest-links__title">Enlaces de Interés</h2>
-    </div>
-  </div>
-</section>
-
-<section class="logo-ribbon" aria-label="Carrusel de accesos rápidos">
-  <div class="logo-ribbon__viewport">
-    <div class="logo-ribbon__track">
-      <?php
-      $enlaces = get_enlaces_interes();
-      if ($enlaces):
-        for ($i = 0; $i < 2; $i++):
-          foreach ($enlaces as $enlace):
-            $url    = get_post_meta($enlace->ID, '_enlace_url', true);
-            $target = get_post_meta($enlace->ID, '_enlace_target', true) ?: '_self';
-            $imagen = get_the_post_thumbnail_url($enlace->ID, 'quick-access');
-            if ($imagen && $url): ?>
-              <a class="logo-ribbon__link" 
-                 href="<?php echo esc_url($url); ?>" 
-                 target="<?php echo esc_attr($target); ?>"
-                 rel="<?php echo $target === '_blank' ? 'noopener noreferrer' : ''; ?>"
-                 aria-label="<?php echo esc_attr($enlace->post_title); ?>">
-                <img src="<?php echo esc_url($imagen); ?>" 
-                     alt="<?php echo esc_attr($enlace->post_title); ?>"
-                     loading="lazy">
-              </a>
+  <div class="interest-links__container">
+    <div class="interest-links__grid">
+      
+      <!-- IZQUIERDA: Carrusel (blanco, sin color) -->
+      <div class="interest-links__media" aria-label="Carrusel de accesos rápidos">
+        <div class="logo-ribbon" aria-roledescription="carousel">
+          <div class="logo-ribbon__track">
             <?php
+            $enlaces = get_enlaces_interes();
+            if ($enlaces):
+              // Duplicamos para scroll infinito
+              for ($i = 0; $i < 2; $i++):
+                foreach ($enlaces as $enlace):
+                  $url    = get_post_meta($enlace->ID, '_enlace_url', true);
+                  $target = get_post_meta($enlace->ID, '_enlace_target', true) ?: '_self';
+                  $imagen = get_the_post_thumbnail_url($enlace->ID, 'quick-access');
+                  if ($imagen && $url): ?>
+                    <div class="logo-item">
+                      <a class="logo-ribbon__link" 
+                         href="<?php echo esc_url($url); ?>" 
+                         target="<?php echo esc_attr($target); ?>"
+                         rel="<?php echo $target === '_blank' ? 'noopener noreferrer' : ''; ?>"
+                         aria-label="<?php echo esc_attr($enlace->post_title); ?>">
+                        <div class="logo-frame">
+                          <img src="<?php echo esc_url($imagen); ?>" 
+                               alt="<?php echo esc_attr($enlace->post_title); ?>"
+                               loading="lazy">
+                        </div>
+                      </a>
+                      <span class="logo-title"><?php echo esc_html($enlace->post_title); ?></span>
+                    </div>
+                  <?php endif;
+                endforeach;
+              endfor;
             endif;
-          endforeach;
-        endfor;
-      endif;
-      ?>
+            ?>
+          </div>
+        </div>
+      </div>
+
+      <!-- DERECHA: Título y subtítulo (colores sólidos) -->
+      <header class="interest-links__header">
+        <h2 class="interest-links__title">Enlaces de Interés</h2>
+        <p class="interest-links__subtitle">Acceso directo a recursos institucionales y aliados oficiales</p>
+      </header>
+
     </div>
   </div>
 </section>

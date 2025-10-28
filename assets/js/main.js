@@ -16,6 +16,12 @@
     setupMobileMenu();
     setupStickySubheader();
     setupHeroCarousel();
+    setupInterestLinks();
+    setupSiteViewsBadge();
+    // Ensure it renders even if footer mounts late
+    window.addEventListener('load', setupSiteViewsBadge);
+    setTimeout(setupSiteViewsBadge, 1200);
+    setTimeout(setupSiteViewsBadge, 3000);
     setupForms();
     setupLazyLoading();
     setupSmoothScrolling();
@@ -406,6 +412,149 @@ function setupMobileMenu() {
   }
 })();
 
+  /* Interest links: dots, drag/swipe, autoplay */
+  function setupInterestLinks() {
+    const media = document.querySelector('.interest-links__media');
+    const ribbon = media?.querySelector('.logo-ribbon');
+    const track = ribbon?.querySelector('.logo-ribbon__track');
+    if (!media || !ribbon || !track) return;
+
+    const items = Array.from(track.querySelectorAll('.logo-item'));
+    if (!items.length) return;
+
+    // Ensure base styles hook
+    ribbon.dataset.enhanced = '1';
+
+    // Create dots container (once)
+    let dotsWrap = media.querySelector('#ilDots');
+    if (!dotsWrap) {
+      dotsWrap = document.createElement('div');
+      dotsWrap.id = 'ilDots';
+      dotsWrap.className = 'logo-ribbon__dots';
+      dotsWrap.setAttribute('role', 'tablist');
+      dotsWrap.setAttribute('aria-label', 'Paginación de accesos');
+      ribbon.insertAdjacentElement('afterend', dotsWrap);
+    }
+
+    let current = 0;
+    let pages = 1;
+    let itemsPerPage = 1;
+    let viewportWidth = 0;
+    let pageWidth = 0;
+    let autoplayTimer = null;
+    let paused = false;
+    const delay = 6000;
+
+    function calcLayout() {
+      viewportWidth = ribbon.clientWidth;
+      const firstItem = items[0];
+      const itemWidth = firstItem ? firstItem.getBoundingClientRect().width : Math.max(220, viewportWidth);
+      itemsPerPage = Math.max(1, Math.floor(viewportWidth / Math.max(1, itemWidth)));
+      pages = Math.max(1, Math.ceil(items.length / itemsPerPage));
+      pageWidth = viewportWidth; // full-width pages
+      buildDots();
+      snapTo(current, false);
+    }
+
+    function buildDots() {
+      dotsWrap.innerHTML = '';
+      for (let i = 0; i < pages; i++) {
+        const dot = document.createElement('button');
+        dot.className = 'il-dot' + (i === current ? ' is-active' : '');
+        dot.type = 'button';
+        dot.setAttribute('role', 'tab');
+        dot.setAttribute('aria-selected', i === current ? 'true' : 'false');
+        dot.setAttribute('aria-label', `Ir a página ${i + 1}`);
+        dot.addEventListener('click', () => goTo(i, true));
+        dotsWrap.appendChild(dot);
+      }
+    }
+
+    function snapTo(idx, animate = true) {
+      current = ((idx % pages) + pages) % pages;
+      const x = -(current * pageWidth);
+      track.style.transition = animate ? 'transform 420ms cubic-bezier(.2,.65,.2,1)' : 'none';
+      track.style.transform = `translate3d(${x}px,0,0)`;
+      // Dots state
+      const children = dotsWrap.children;
+      for (let i = 0; i < children.length; i++) {
+        children[i].classList.toggle('is-active', i === current);
+        children[i].setAttribute('aria-selected', i === current ? 'true' : 'false');
+      }
+    }
+
+    function goTo(idx, user = false) {
+      snapTo(idx, true);
+      if (user) startAutoplay();
+    }
+    const next = () => goTo(current + 1);
+    const prev = () => goTo(current - 1);
+
+    function startAutoplay() {
+      stopAutoplay();
+      if (pages > 1) autoplayTimer = setInterval(() => { if (!paused) next(); }, delay);
+    }
+    function stopAutoplay() {
+      if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
+    }
+
+    // Drag / swipe
+    let startX = 0, dx = 0, dragging = false, baseX = 0;
+    const threshold = 60;
+
+    function onDown(e) {
+      dragging = true;
+      ribbon.classList.add('is-dragging');
+      track.style.transition = 'none';
+      paused = true;
+      const point = 'touches' in e ? e.touches[0] : e;
+      startX = point.clientX;
+      baseX = -current * pageWidth;
+    }
+    function onMove(e) {
+      if (!dragging) return;
+      const point = 'touches' in e ? e.touches[0] : e;
+      dx = point.clientX - startX;
+      track.style.transform = `translate3d(${baseX + dx}px,0,0)`;
+    }
+    function onUp() {
+      if (!dragging) return;
+      dragging = false;
+      ribbon.classList.remove('is-dragging');
+      if (Math.abs(dx) > threshold) {
+        dx < 0 ? next() : prev();
+      } else {
+        snapTo(current, true);
+      }
+      dx = 0;
+      // Resume autoplay shortly after interaction
+      setTimeout(() => { paused = false; }, 500);
+      startAutoplay();
+    }
+
+    ribbon.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    ribbon.addEventListener('touchstart', onDown, { passive: true });
+    ribbon.addEventListener('touchmove', onMove, { passive: true });
+    ribbon.addEventListener('touchend', onUp, { passive: true });
+
+    // Pause on hover/focus
+    ribbon.addEventListener('mouseenter', () => { paused = true; });
+    ribbon.addEventListener('mouseleave', () => { paused = false; });
+
+    // Resize handling
+    let rTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(rTimer);
+      rTimer = setTimeout(() => { calcLayout(); }, 120);
+    });
+
+    // First layout + autoplay
+    calcLayout();
+    if (pages > 1) startAutoplay();
+  }
+
   /* Form submissions and search suggestion binding */
   function setupForms() {
     const newsletterForm = document.getElementById('newsletterForm');
@@ -492,6 +641,25 @@ function setupMobileMenu() {
       liveRegion.textContent = message;
       setTimeout(() => { liveRegion.textContent = ''; }, 1000);
     };
+  }
+
+  // Site-wide views badge injection (non-intrusive)
+  function setupSiteViewsBadge() {
+    try {
+      if (document.querySelector('.foot-bottom .site-views')) return;
+      const n = (window.ugel_ajax && typeof window.ugel_ajax.site_views === 'number') ? window.ugel_ajax.site_views : null;
+      if (n == null) return;
+      const slot = document.querySelector('.foot-bottom > div');
+      if (!slot) return;
+      const sep = document.createTextNode(' \u00B7 ');
+      const span = document.createElement('span');
+      span.className = 'site-views';
+      span.setAttribute('aria-label', 'Visitas al sitio');
+      span.textContent = `Visitas: ${new Intl.NumberFormat().format(n)}`;
+      // Insert just before any post-views badge if present
+      slot.appendChild(sep);
+      slot.appendChild(span);
+    } catch(_){}
   }
 
   /* Live search suggestions in desktop and mobile forms */
@@ -807,4 +975,3 @@ function setupMobileMenu() {
     });
   }
 })();
-

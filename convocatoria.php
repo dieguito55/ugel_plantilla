@@ -9,32 +9,11 @@ if (!defined('ABSPATH')) {
 
 get_header();
 
-$highlight_id = isset($_GET['convocatoria']) ? absint($_GET['convocatoria']) : 0;
-if (!$highlight_id && isset($_GET['resaltar'])) {
-  $highlight_id = absint($_GET['resaltar']);
-}
-if (!$highlight_id && isset($_GET['conv'])) {
-  $highlight_id = absint($_GET['conv']);
-}
-
-$highlight_slug = isset($_GET['convocatoria_slug']) ? sanitize_key(wp_unslash($_GET['convocatoria_slug'])) : '';
-if (!$highlight_id && $highlight_slug) {
-  $highlight_post = get_page_by_path($highlight_slug, OBJECT, 'convocatorias');
-  if ($highlight_post) {
-    $highlight_id = (int) $highlight_post->ID;
-  }
-}
-
-if (is_singular('convocatorias')) {
-  $highlight_id = $highlight_id ?: get_queried_object_id();
-}
-
 $convocatoria_page   = get_page_by_path('convocatoria');
 $directory_base_url  = $convocatoria_page ? get_permalink($convocatoria_page) : get_post_type_archive_link('convocatorias');
 if (!$directory_base_url) {
   $directory_base_url = home_url('/convocatoria/');
 }
-$directory_anchor_url = $directory_base_url ? $directory_base_url . '#convocatoria-table' : '';
 
 $queried_object    = get_queried_object();
 $directory_title   = __('Convocatorias UGEL El Collao', 'ugel-theme');
@@ -58,8 +37,8 @@ if ($queried_object instanceof WP_Post && 'convocatorias' !== $queried_object->p
 
 $docs_labels = array(
   'bases_pdf'                => __('Bases', 'ugel-theme'),
-  'resultado_preliminar_pdf' => __('Resultado Preliminar Curricular', 'ugel-theme'),
-  'resultado_final_curr_pdf' => __('Resultado Final Curricular', 'ugel-theme'),
+  'resultado_preliminar_pdf' => __('Resultado Preliminar', 'ugel-theme'),
+  'resultado_final_curr_pdf' => __('Resultado Final', 'ugel-theme'),
   'resultados_finales_pdf'   => __('Resultados Finales', 'ugel-theme'),
 );
 
@@ -115,663 +94,1059 @@ if ($convocatorias_query->have_posts()) {
         'resultado_final_curr_pdf' => $meta['resultado_final_curr_pdf'] ?? '',
         'resultados_finales_pdf'   => $meta['resultados_finales_pdf'] ?? '',
       ),
-      'descripcion' => $meta['descripcion'] ?? '',
     );
   }
   wp_reset_postdata();
 }
-
-$highlight_post = $highlight_id ? get_post($highlight_id) : null;
-if ($highlight_post instanceof WP_Post && empty($additional_content)) {
-  $content_raw = apply_filters('the_content', $highlight_post->post_content);
-  if ($content_raw && trim(wp_strip_all_tags($content_raw))) {
-    $additional_content = $content_raw;
-  }
-}
-
-$highlight_meta  = $highlight_post ? ugel_get_convocatoria_meta($highlight_post->ID) : array();
-$highlight_state = $highlight_post ? ugel_get_convocatoria_status_details($highlight_meta['fecha_inicio'] ?? '', $highlight_meta['fecha_fin'] ?? '') : array('slug' => '', 'label' => '');
-$highlight_index = $highlight_meta['indice'] ?? '';
-$highlight_type  = $highlight_meta['tipo'] ?? '';
-$highlight_start = $highlight_meta['fecha_inicio'] ?? '';
-$highlight_end   = $highlight_meta['fecha_fin'] ?? '';
-$highlight_start_fmt = ugel_format_convocatoria_date($highlight_start);
-$highlight_end_fmt   = ugel_format_convocatoria_date($highlight_end);
-$highlight_range = '';
-
-if ($highlight_start_fmt && $highlight_end_fmt) {
-  $highlight_range = sprintf(__('Del %1$s al %2$s', 'ugel-theme'), $highlight_start_fmt, $highlight_end_fmt);
-} elseif ($highlight_start_fmt) {
-  $highlight_range = sprintf(__('Desde el %s', 'ugel-theme'), $highlight_start_fmt);
-} elseif ($highlight_end_fmt) {
-  $highlight_range = sprintf(__('Hasta el %s', 'ugel-theme'), $highlight_end_fmt);
-} elseif ($highlight_post) {
-  $highlight_range = __('Fecha por confirmar', 'ugel-theme');
-}
-
-$highlight_summary = '';
-if ($highlight_post) {
-  if (!empty($highlight_meta['descripcion'])) {
-    $highlight_summary = wp_trim_words(wp_strip_all_tags($highlight_meta['descripcion']), 40, '…');
-  } elseif (!empty($highlight_post->post_excerpt)) {
-    $highlight_summary = wp_trim_words(wp_strip_all_tags($highlight_post->post_excerpt), 40, '…');
-  }
-}
-
-$highlight_docs = array();
-foreach ($docs_labels as $key => $label) {
-  $highlight_docs[$key] = array(
-    'label' => $label,
-    'meta'  => $highlight_meta[$key] ?? '',
-  );
-}
 ?>
 
-<section class="convocatoria-detail" aria-label="Directorio de convocatorias">
+<section class="convocatoria-detail">
   <div class="wrap">
     <div class="convocatoria-shell">
-      <header class="convocatoria-head">
-        <div class="convocatoria-head__content">
-          <span class="convocatoria-head__eyebrow"><?php esc_html_e('Procesos institucionales', 'ugel-theme'); ?></span>
-          <h1 class="convocatoria-head__title"><?php echo esc_html($directory_title); ?></h1>
-          <p class="convocatoria-head__summary"><?php echo esc_html($directory_summary); ?></p>
-        </div>
-        <div class="convocatoria-head__meta">
-          <div class="convocatoria-head__badge">
-            <span class="badge-value"><?php echo esc_html(number_format_i18n(count($convocatorias))); ?></span>
-            <span class="badge-label"><?php esc_html_e('Convocatorias publicadas', 'ugel-theme'); ?></span>
+      
+      <!-- HEADER CONTAINER -->
+      <div class="header-container">
+        <div class="header-content">
+          <div class="header-text">
+            <span class="header-badge"><?php esc_html_e('Procesos institucionales', 'ugel-theme'); ?></span>
+            <h1 class="header-title"><?php echo esc_html($directory_title); ?></h1>
+            <p class="header-description"><?php echo esc_html($directory_summary); ?></p>
           </div>
-          <?php if ($highlight_post && $directory_anchor_url) : ?>
-          <a class="convocatoria-head__reset" href="<?php echo esc_url($directory_anchor_url); ?>">
-            <?php esc_html_e('Ver listado completo', 'ugel-theme'); ?>
-          </a>
-          <?php endif; ?>
-        </div>
-      </header>
-
-      <?php if ($highlight_post) : ?>
-      <section class="convocatoria-focus" id="convocatoria-focus" aria-label="Convocatoria seleccionada">
-        <div class="convocatoria-focus__primary">
-          <div class="convocatoria-focus__top">
-            <?php if (!empty($highlight_index)) : ?>
-              <span class="convocatoria-focus__index">#<?php echo esc_html($highlight_index); ?></span>
-            <?php endif; ?>
-            <?php if (!empty($highlight_type)) : ?>
-              <span class="convocatoria-focus__type"><?php echo esc_html($highlight_type); ?></span>
-            <?php endif; ?>
+          <div class="header-stats">
+            <div class="stats-card">
+              <span class="stats-number"><?php echo esc_html(number_format_i18n(count($convocatorias))); ?></span>
+              <span class="stats-label"><?php esc_html_e('Convocatorias', 'ugel-theme'); ?></span>
+            </div>
           </div>
-          <h2 class="convocatoria-focus__title"><?php echo esc_html(get_the_title($highlight_post)); ?></h2>
-          <?php if (!empty($highlight_summary)) : ?>
-            <p class="convocatoria-focus__summary"><?php echo esc_html($highlight_summary); ?></p>
-          <?php endif; ?>
         </div>
-        <div class="convocatoria-focus__aside">
-          <span class="convocatoria-chip convocatoria-chip--<?php echo esc_attr($highlight_state['slug'] ?? 'en_proceso'); ?>">
-            <?php echo esc_html($highlight_state['label'] ?? __('En proceso', 'ugel-theme')); ?>
-          </span>
-          <?php if (!empty($highlight_range)) : ?>
-            <span class="convocatoria-focus__dates"><?php echo esc_html($highlight_range); ?></span>
-          <?php endif; ?>
-        </div>
-      </section>
-
-      <section class="convocatoria-pdfs" aria-label="Documentos de la convocatoria destacada">
-        <h2 class="convocatoria-pdfs__title"><?php esc_html_e('Documentos oficiales', 'ugel-theme'); ?></h2>
-        <div class="convocatoria-pdfs__grid">
-          <?php foreach ($highlight_docs as $key => $info) :
-            $url         = $info['meta'];
-            $label_pdf   = $info['label'];
-            $has_pdf     = !empty($url);
-            $gradient_id = 'pdfGradient-' . sanitize_html_class($key);
-          ?>
-          <article class="convocatoria-pdf <?php echo $has_pdf ? 'convocatoria-pdf--active' : 'convocatoria-pdf--empty'; ?>">
-            <div class="convocatoria-pdf__icon" aria-hidden="true">
-              <svg viewBox="0 0 48 48" width="48" height="48" role="img" focusable="false">
-                <defs>
-                  <linearGradient id="<?php echo esc_attr($gradient_id); ?>" x1="0%" x2="100%" y1="0%" y2="100%">
-                    <stop offset="0%" stop-color="#000C97" />
-                    <stop offset="50%" stop-color="#021F59" />
-                    <stop offset="100%" stop-color="#8297FE" />
-                  </linearGradient>
-                </defs>
-                <path fill="url(#<?php echo esc_attr($gradient_id); ?>)" d="M32 4H14a4 4 0 0 0-4 4v32a4 4 0 0 0 4 4h20a4 4 0 0 0 4-4V12L32 4z" opacity="0.12"></path>
-                <path fill="url(#<?php echo esc_attr($gradient_id); ?>)" d="M32 4l6 8h-6z" opacity="0.3"></path>
-                <path fill="#FFFFFF" d="M18 20h12v2H18zm0 6h12v2H18zm0 6h8v2h-8z"></path>
-                <path fill="url(#<?php echo esc_attr($gradient_id); ?>)" d="M18 12h6v6h-6z" opacity="0.35"></path>
-              </svg>
-            </div>
-            <div class="convocatoria-pdf__content">
-              <h3 class="convocatoria-pdf__title"><?php echo esc_html($label_pdf); ?></h3>
-              <?php if ($has_pdf) : ?>
-                <a class="convocatoria-pdf__link" href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener noreferrer">
-                  <?php esc_html_e('Descargar PDF', 'ugel-theme'); ?>
-                </a>
-              <?php else : ?>
-                <span class="convocatoria-pdf__missing"><?php esc_html_e('Documento no disponible', 'ugel-theme'); ?></span>
-              <?php endif; ?>
-            </div>
-          </article>
-          <?php endforeach; ?>
-        </div>
-      </section>
-      <?php endif; ?>
+      </div>
 
       <?php if (!empty($convocatorias)) : ?>
-      <div class="convocatoria-table__wrapper" id="directorio-convocatorias">
-        <table id="convocatoria-table" class="convocatoria-table display nowrap" style="width:100%" data-highlight-id="<?php echo esc_attr($highlight_post ? $highlight_post->ID : 0); ?>">
-          <thead>
-            <tr>
-              <th><?php esc_html_e('Índice', 'ugel-theme'); ?></th>
-              <th><?php esc_html_e('Convocatoria', 'ugel-theme'); ?></th>
-              <th><?php esc_html_e('Tipo', 'ugel-theme'); ?></th>
-              <th><?php esc_html_e('Fechas', 'ugel-theme'); ?></th>
-              <th><?php esc_html_e('Estado', 'ugel-theme'); ?></th>
-              <?php foreach ($docs_labels as $label) : ?>
-              <th><?php echo esc_html($label); ?></th>
-              <?php endforeach; ?>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($convocatorias as $conv) :
-              $row_classes = array();
-              if ($highlight_post && (int) $conv['id'] === (int) $highlight_post->ID) {
-                $row_classes[] = 'is-highlighted';
-              }
-            ?>
-            <tr id="convocatoria-<?php echo esc_attr($conv['id']); ?>" class="<?php echo esc_attr(implode(' ', $row_classes)); ?>">
-              <td data-label="<?php esc_attr_e('Índice', 'ugel-theme'); ?>" data-order="<?php echo esc_attr($conv['indice'] !== '' ? (int) $conv['indice'] : 0); ?>">
-                <?php echo $conv['indice'] !== '' ? '#' . esc_html($conv['indice']) : '—'; ?>
-              </td>
-              <td data-label="<?php esc_attr_e('Convocatoria', 'ugel-theme'); ?>" class="convocatoria-table__title">
-                <strong><?php echo esc_html($conv['title']); ?></strong>
-              </td>
-              <td data-label="<?php esc_attr_e('Tipo', 'ugel-theme'); ?>">
-                <?php echo !empty($conv['tipo']) ? esc_html($conv['tipo']) : '—'; ?>
-              </td>
-              <td data-label="<?php esc_attr_e('Fechas', 'ugel-theme'); ?>" data-order="<?php echo esc_attr($conv['date_order']); ?>">
-                <time datetime="<?php echo esc_attr($conv['date_order']); ?>"><?php echo esc_html($conv['range']); ?></time>
-              </td>
-              <td data-label="<?php esc_attr_e('Estado', 'ugel-theme'); ?>">
-                <span class="convocatoria-chip convocatoria-chip--<?php echo esc_attr($conv['state_slug']); ?>"><?php echo esc_html($conv['state_label']); ?></span>
-              </td>
-              <?php foreach ($docs_labels as $key => $label) :
-                $doc_url = $conv['docs'][$key] ?? '';
-                $has_doc = !empty($doc_url);
-              ?>
-              <td data-label="<?php echo esc_attr($label); ?>" data-order="<?php echo $has_doc ? 1 : 0; ?>">
-                <?php if ($has_doc) : ?>
-                  <a class="convocatoria-doc convocatoria-doc--active" href="<?php echo esc_url($doc_url); ?>" target="_blank" rel="noopener noreferrer">
-                    <span class="convocatoria-doc__icon" aria-hidden="true">📄</span>
-                    <span class="convocatoria-doc__label"><?php esc_html_e('Descargar', 'ugel-theme'); ?></span>
-                  </a>
-                <?php else : ?>
-                  <span class="convocatoria-doc convocatoria-doc--empty">
-                    <span class="convocatoria-doc__icon" aria-hidden="true">⏳</span>
-                    <span class="convocatoria-doc__label"><?php esc_html_e('Pendiente', 'ugel-theme'); ?></span>
-                  </span>
-                <?php endif; ?>
-              </td>
-              <?php endforeach; ?>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
+
+      <!-- CONTROLES CONTAINER -->
+      <div class="controls-container">
+        <div class="control-group">
+          <label for="show-entries">Mostrar:</label>
+          <select id="show-entries" class="entries-select">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="-1">Todos</option>
+          </select>
+          <span class="control-label">entradas</span>
+        </div>
+        <div class="control-group search-group">
+          <label for="table-search">Buscar:</label>
+          <div class="search-box">
+            <input type="text" id="table-search" class="search-input" placeholder="Buscar convocatorias...">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
       </div>
+
+      <!-- TABLA CONTAINER CON SCROLL -->
+      <div class="table-container">
+        <div class="table-scroll-wrapper">
+          <table id="convocatoria-table" class="convocatoria-table">
+            <thead>
+              <tr>
+                <th class="col-index">Índice</th>
+                <th class="col-title">Convocatoria</th>
+                <th class="col-type">Tipo</th>
+                <th class="col-dates">Periodo</th>
+                <th class="col-status">Estado</th>
+                <th class="col-doc">Bases</th>
+                <th class="col-doc">Preliminar</th>
+                <th class="col-doc">Final</th>
+                <th class="col-doc">Resultados</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($convocatorias as $conv) : ?>
+              <tr class="table-row">
+                <td class="cell-index">
+                  <span class="index-badge"><?php echo $conv['indice'] !== '' ? '#' . esc_html($conv['indice']) : '—'; ?></span>
+                </td>
+                <td class="cell-title">
+                  <strong class="conv-title"><?php echo esc_html($conv['title']); ?></strong>
+                </td>
+                <td class="cell-type">
+                  <span class="conv-type"><?php echo !empty($conv['tipo']) ? esc_html($conv['tipo']) : '—'; ?></span>
+                </td>
+                <td class="cell-dates">
+                  <time datetime="<?php echo esc_attr($conv['date_order']); ?>" class="conv-dates"><?php echo esc_html($conv['range']); ?></time>
+                </td>
+                <td class="cell-status">
+                  <span class="status-badge status-<?php echo esc_attr($conv['state_slug']); ?>">
+                    <?php echo esc_html($conv['state_label']); ?>
+                  </span>
+                </td>
+                <?php foreach ($docs_labels as $key => $label) :
+                  $doc_url = $conv['docs'][$key] ?? '';
+                  $has_doc = !empty($doc_url);
+                ?>
+                <td class="cell-doc">
+                  <?php if ($has_doc) : ?>
+                    <a class="doc-button doc-available" href="<?php echo esc_url($doc_url); ?>" target="_blank" rel="noopener noreferrer" title="Descargar <?php echo esc_attr($label); ?>">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M14 2H6C4.895 2 4 2.895 4 4V20C4 21.105 4.895 22 6 22H18C19.105 22 20 21.105 20 20V8L14 2Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M14 2V8H20" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M16 13H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M16 17H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M10 9H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                      </svg>
+                    </a>
+                  <?php else : ?>
+                    <span class="doc-button doc-unavailable" title="<?php echo esc_attr($label); ?> no disponible">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M14 2H6C4.895 2 4 2.895 4 4V20C4 21.105 4.895 22 6 22H18C19.105 22 20 21.105 20 20V8L14 2Z" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.4"/>
+                        <path d="M14 2V8H20" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.4"/>
+                        <path d="M16 13H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.4"/>
+                        <path d="M16 17H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.4"/>
+                        <path d="M10 9H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.4"/>
+                      </svg>
+                    </span>
+                  <?php endif; ?>
+                </td>
+                <?php endforeach; ?>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FOOTER PAGINATION CONTAINER -->
+      <div class="footer-container">
+        <div class="table-info">
+          Mostrando <span class="info-from">1</span> a <span class="info-to">10</span> de <span class="info-total"><?php echo count($convocatorias); ?></span> convocatorias
+        </div>
+        <div class="table-pagination">
+          <button class="pagination-btn pagination-prev" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="pagination-pages"></div>
+          <button class="pagination-btn pagination-next">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
       <?php else : ?>
-        <p class="convocatoria-empty"><?php esc_html_e('No hay convocatorias disponibles por ahora.', 'ugel-theme'); ?></p>
+      <div class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+          <path d="M14 2H6C4.895 2 4 2.895 4 4V20C4 21.105 4.895 22 6 22H18C19.105 22 20 21.105 20 20V8L14 2Z" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M14 2V8H20" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M16 13H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M16 17H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M10 9H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <h3>No hay convocatorias disponibles</h3>
+        <p>No se encontraron convocatorias activas en este momento.</p>
+      </div>
       <?php endif; ?>
 
       <?php if (!empty($additional_content)) : ?>
-      <section class="convocatoria-body" aria-label="Información adicional">
-        <div class="convocatoria-body__content">
-          <?php echo $additional_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      <section class="additional-content">
+        <div class="content-wrapper">
+          <?php echo $additional_content; ?>
         </div>
       </section>
       <?php endif; ?>
+
     </div>
   </div>
 </section>
 
 <style>
+  :root {
+    --primary: #000C97;
+    --primary-dark: #021F59;
+    --primary-light: #8297FE;
+    --white: #FFFFFF;
+    --gray-50: #F8FAFC;
+    --gray-100: #F1F5F9;
+    --gray-200: #E2E8F0;
+    --gray-300: #CBD5E1;
+    --gray-400: #94A3B8;
+    --gray-500: #64748B;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1E293B;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --warning-light: #FEF3C7;
+    --warning-dark: #D97706;
+    --error: #EF4444;
+    --error-light: #FEE2E2;
+    --error-dark: #DC2626;
+    --border-radius: 12px;
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --transition: all 0.2s ease-in-out;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
   .convocatoria-detail {
-    padding: clamp(48px, 6vw, 72px) 0;
-    background: linear-gradient(180deg, #F5F8FF 0%, #FFFFFF 50%, #F8FAFF 100%);
+    padding: 2rem 0;
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
+    min-height: 100vh;
+    width: 100%;
   }
+
+  .wrap {
+    width: 100%;
+  }
+
   .convocatoria-shell {
+    max-width: 100%;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1rem;
     display: flex;
     flex-direction: column;
-    gap: clamp(28px, 4vw, 48px);
+    gap: 1.5rem;
+    box-sizing: border-box;
   }
-  .convocatoria-head {
+
+  /* HEADER CONTAINER */
+  .header-container {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .header-content {
     display: flex;
-    flex-wrap: wrap;
     justify-content: space-between;
-    align-items: center;
-    gap: clamp(18px, 4vw, 36px);
-    background: #FFFFFF;
-    border: 1px solid rgba(130, 151, 254, 0.18);
+    align-items: flex-start;
+    gap: 2rem;
+  }
+
+  .header-text {
+    flex: 1;
+  }
+
+  .header-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: var(--white);
+    padding: 0.5rem 1rem;
     border-radius: 20px;
-    padding: clamp(24px, 4vw, 36px);
-    box-shadow:
-      0 12px 38px rgba(2, 31, 89, 0.08),
-      0 6px 20px rgba(2, 31, 89, 0.05),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
-  .convocatoria-head__content {
-    max-width: min(600px, 100%);
-  }
-  .convocatoria-head__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: rgba(0, 12, 151, 0.12);
-    color: #000C97;
+    font-size: 0.75rem;
     font-weight: 700;
-    font-size: 0.85rem;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
   }
-  .convocatoria-head__title {
-    margin: 14px 0 12px;
-    font-size: clamp(1.8rem, 3vw, 2.4rem);
+
+  .header-title {
+    font-size: 2rem;
     font-weight: 900;
-    color: #021F59;
-    line-height: 1.18;
+    color: var(--primary-dark);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
   }
-  .convocatoria-head__summary {
-    margin: 0;
-    color: #475569;
+
+  .header-description {
+    color: var(--gray-600);
     font-size: 1rem;
-    max-width: 54ch;
-  }
-  .convocatoria-head__meta {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    align-items: flex-end;
-  }
-  .convocatoria-head__badge {
-    display: grid;
-    place-items: center;
-    gap: 4px;
-    padding: 18px 24px;
-    border-radius: 16px;
-    background: linear-gradient(160deg, rgba(0, 12, 151, 0.08), rgba(130, 151, 254, 0.12));
-    border: 1px solid rgba(130, 151, 254, 0.18);
-    text-align: center;
-    min-width: 200px;
-  }
-  .badge-value {
-    font-size: clamp(1.8rem, 3vw, 2.2rem);
-    font-weight: 900;
-    color: #021F59;
-  }
-  .badge-label {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-  }
-  .convocatoria-head__reset {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 700;
-    color: #000C97;
-    text-decoration: none;
-  }
-  .convocatoria-head__reset::before {
-    content: '↺';
-    font-size: 1rem;
-  }
-  .convocatoria-head__reset:hover {
-    text-decoration: underline;
-  }
-  .convocatoria-focus {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 18px;
-    background: linear-gradient(135deg, rgba(178, 255, 255, 0.25), rgba(130, 151, 254, 0.15));
-    border: 1px solid rgba(0, 12, 151, 0.16);
-    border-radius: 20px;
-    padding: clamp(20px, 3vw, 28px);
-    box-shadow:
-      0 18px 42px rgba(2, 31, 89, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  }
-  .convocatoria-focus__primary {
-    flex: 1 1 380px;
-  }
-  .convocatoria-focus__top {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-  .convocatoria-focus__index {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: rgba(0, 12, 151, 0.85);
-    color: #FFFFFF;
-    font-weight: 800;
-    letter-spacing: 0.6px;
-  }
-  .convocatoria-focus__type {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.8);
-    color: #021F59;
-    font-weight: 700;
-    border: 1px solid rgba(0, 12, 151, 0.16);
-  }
-  .convocatoria-focus__title {
-    margin: 0 0 10px;
-    font-size: clamp(1.5rem, 2.4vw, 2rem);
-    font-weight: 900;
-    color: #021F59;
-  }
-  .convocatoria-focus__summary {
+    line-height: 1.5;
     margin: 0;
-    color: #1E293B;
-    max-width: 70ch;
   }
-  .convocatoria-focus__aside {
-    display: grid;
-    align-items: center;
-    gap: 12px;
-    text-align: right;
-  }
-  .convocatoria-focus__dates {
-    font-weight: 700;
-    color: #021F59;
-  }
-  .convocatoria-table__wrapper {
-    background: #FFFFFF;
-    border-radius: 20px;
-    border: 1px solid rgba(130, 151, 254, 0.18);
-    padding: clamp(20px, 3vw, 28px);
-    box-shadow:
-      0 10px 32px rgba(2, 31, 89, 0.07),
-      0 4px 16px rgba(2, 31, 89, 0.04),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
-  table.convocatoria-table {
-    width: 100% !important;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-  }
-  .convocatoria-table thead th {
-    background: linear-gradient(120deg, rgba(0, 12, 151, 0.08), rgba(2, 31, 89, 0.04));
-    color: #021F59;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    padding: 14px;
-    border-bottom: 2px solid rgba(0, 12, 151, 0.12);
-  }
-  .convocatoria-table tbody td {
-    padding: 16px 14px;
-    border-bottom: 1px solid rgba(130, 151, 254, 0.12);
-    color: #0F172A;
-    font-weight: 600;
-    vertical-align: middle;
-  }
-  .convocatoria-table__title strong {
-    font-weight: 800;
-    color: #021F59;
-  }
-  .convocatoria-table tbody tr.is-highlighted {
-    background: linear-gradient(135deg, rgba(0, 12, 151, 0.06), rgba(130, 151, 254, 0.08));
-    box-shadow: inset 0 0 0 2px rgba(0, 12, 151, 0.18);
-  }
-  .convocatoria-table tbody tr.is-highlighted td:first-child::before {
-    content: '★';
-    color: #FFD166;
-    margin-right: 6px;
-  }
-  .convocatoria-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 16px;
-    border-radius: 999px;
-    font-size: 0.85rem;
-    font-weight: 800;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-  }
-  .convocatoria-chip--programado {
-    background: rgba(130, 151, 254, 0.18);
-    color: #021F59;
-  }
-  .convocatoria-chip--en_proceso {
-    background: rgba(0, 12, 151, 0.16);
-    color: #FFFFFF;
-  }
-  .convocatoria-chip--culminado {
-    background: rgba(148, 163, 184, 0.18);
-    color: #334155;
-  }
-  .convocatoria-doc {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-decoration: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid transparent;
-  }
-  .convocatoria-doc--active {
-    background: rgba(0, 12, 151, 0.12);
-    color: #000C97;
-    border-color: rgba(0, 12, 151, 0.18);
-  }
-  .convocatoria-doc--active:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 18px rgba(2, 31, 89, 0.14);
-  }
-  .convocatoria-doc--empty {
-    background: rgba(241, 245, 249, 0.8);
-    color: #94A3B8;
-    border-color: rgba(148, 163, 184, 0.3);
-    cursor: not-allowed;
-  }
-  .convocatoria-doc__icon {
-    font-size: 1rem;
-  }
-  .convocatoria-doc__label {
-    white-space: nowrap;
-  }
-  .convocatoria-pdfs {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  .convocatoria-pdfs__title {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #021F59;
-  }
-  .convocatoria-pdfs__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-  }
-  .convocatoria-pdf {
-    background: #FFFFFF;
-    border-radius: 18px;
-    border: 1px solid rgba(130, 151, 254, 0.16);
-    padding: 18px;
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    box-shadow:
-      0 10px 28px rgba(2, 31, 89, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-  }
-  .convocatoria-pdf--empty {
-    background: linear-gradient(135deg, rgba(130, 151, 254, 0.08), rgba(178, 255, 255, 0.08));
-    border-style: dashed;
-    opacity: 0.85;
-  }
-  .convocatoria-pdf--active:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 14px 32px rgba(2, 31, 89, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  }
-  .convocatoria-pdf__icon {
+
+  .header-stats {
     flex-shrink: 0;
   }
-  .convocatoria-pdf__title {
-    margin: 0 0 6px 0;
-    font-size: 1rem;
-    font-weight: 800;
-    color: #021F59;
+
+  .stats-card {
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
+    color: var(--white);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    min-width: 140px;
+    box-shadow: var(--shadow-md);
   }
-  .convocatoria-pdf__link {
-    display: inline-flex;
+
+  .stats-number {
+    display: block;
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .stats-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  /* CONTROLES CONTAINER */
+  .controls-container {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-decoration: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid transparent;
+    gap: 1rem;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
   }
-  .convocatoria-doc--active {
-    background: rgba(0, 12, 151, 0.12);
-    color: #000C97;
-    border-color: rgba(0, 12, 151, 0.18);
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
-  .convocatoria-doc--active:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 18px rgba(2, 31, 89, 0.14);
-  }
-  .convocatoria-doc--empty {
-    background: rgba(241, 245, 249, 0.8);
-    color: #94A3B8;
-    border-color: rgba(148, 163, 184, 0.3);
-    cursor: not-allowed;
-  }
-  .convocatoria-doc__icon {
-    font-size: 1rem;
-  }
-  .convocatoria-doc__label {
+
+  .control-group label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
     white-space: nowrap;
   }
-  .convocatoria-body__content {
-    background: #FFFFFF;
-    border-radius: 18px;
-    border: 1px solid rgba(130, 151, 254, 0.16);
-    padding: clamp(24px, 4vw, 36px);
-    box-shadow:
-      0 12px 34px rgba(2, 31, 89, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+
+  .entries-select,
+  .search-input {
+    padding: 0.625rem 0.875rem;
+    border: 1.5px solid var(--gray-300);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: var(--white);
+    color: var(--gray-800);
+    transition: var(--transition);
+    font-weight: 500;
   }
-  .convocatoria-body__content h2,
-  .convocatoria-body__content h3,
-  .convocatoria-body__content h4 {
-    color: #021F59;
-    font-weight: 800;
+
+  .entries-select:focus,
+  .search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 12, 151, 0.1);
   }
-  .convocatoria-body__content a {
-    color: #000C97;
+
+  .control-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    white-space: nowrap;
+  }
+
+  .search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-input {
+    padding-left: 2.5rem;
+    width: 250px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    color: var(--gray-400);
+  }
+
+  /* TABLA CONTAINER */
+  .table-container {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-scroll-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 600px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-scroll-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .table-scroll-wrapper::-webkit-scrollbar-track {
+    background: var(--gray-100);
+  }
+
+  .table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: 4px;
+  }
+
+  .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
+  }
+
+  .convocatoria-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    min-width: 1200px;
+  }
+
+  .convocatoria-table thead {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .convocatoria-table th {
+    padding: 1rem 0.875rem;
+    text-align: left;
+    font-weight: 700;
+    color: var(--white);
+    border: none;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .convocatoria-table th.col-index {
+    width: 80px;
+    text-align: center;
+  }
+
+  .convocatoria-table th.col-title {
+    min-width: 250px;
+  }
+
+  .convocatoria-table th.col-type {
+    width: 120px;
+  }
+
+  .convocatoria-table th.col-dates {
+    width: 150px;
+  }
+
+  .convocatoria-table th.col-status {
+    width: 110px;
+    text-align: center;
+  }
+
+  .convocatoria-table th.col-doc {
+    width: 90px;
+    text-align: center;
+  }
+
+  .convocatoria-table td {
+    padding: 0.875rem 0.875rem;
+    border-bottom: 1px solid var(--gray-200);
+    vertical-align: middle;
+  }
+
+  .table-row:hover {
+    background: var(--gray-50);
+  }
+
+  .cell-index {
+    text-align: center;
+  }
+
+  .index-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: var(--white);
+    padding: 0.375rem 0.625rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 40px;
+  }
+
+  .conv-title {
+    font-weight: 600;
+    color: var(--gray-800);
+  }
+
+  .conv-type {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .conv-dates {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+  }
+
+  .cell-status {
+    text-align: center;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .status-programado {
+    background: var(--warning-light);
+    color: var(--warning-dark);
+    border: 1.5px solid var(--warning);
+  }
+
+  .status-en_proceso {
+    background: linear-gradient(135deg, var(--success), #047857);
+    color: var(--white);
+  }
+
+  .status-culminado {
+    background: var(--error-light);
+    color: var(--error-dark);
+    border: 1.5px solid var(--error);
+  }
+
+  .cell-doc {
+    text-align: center;
+  }
+
+  .doc-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    transition: var(--transition);
+    border: 1.5px solid transparent;
+  }
+
+  .doc-available {
+    background: rgba(0, 12, 151, 0.1);
+    color: var(--primary);
+    border-color: rgba(0, 12, 151, 0.2);
+  }
+
+  .doc-available:hover {
+    background: rgba(0, 12, 151, 0.18);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
+  }
+
+  .doc-unavailable {
+    background: var(--gray-100);
+    color: var(--gray-400);
+    border-color: var(--gray-300);
+    cursor: not-allowed;
+  }
+
+  /* FOOTER CONTAINER */
+  .footer-container {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-info {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-weight: 500;
+  }
+
+  .info-from,
+  .info-to,
+  .info-total {
+    font-weight: 700;
+    color: var(--primary-dark);
+  }
+
+  .table-pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .pagination-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1.5px solid var(--gray-300);
+    background: var(--white);
+    border-radius: 8px;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 500;
+  }
+
+  .pagination-btn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(0, 12, 151, 0.05);
+  }
+
+  .pagination-btn:disabled {
+    background: var(--gray-100);
+    color: var(--gray-400);
+    cursor: not-allowed;
+    border-color: var(--gray-200);
+  }
+
+  .pagination-pages {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .page-btn {
+    width: 38px;
+    height: 38px;
+    border: 1.5px solid var(--gray-300);
+    background: var(--white);
+    border-radius: 8px;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .page-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(0, 12, 151, 0.05);
+  }
+
+  .page-btn.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-color: var(--primary);
+    color: var(--white);
+    box-shadow: var(--shadow-md);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+  }
+
+  .empty-state svg {
+    color: var(--gray-400);
+    margin-bottom: 1rem;
+  }
+
+  .empty-state h3 {
+    color: var(--gray-700);
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
     font-weight: 700;
   }
-  .convocatoria-empty {
+
+  .empty-state p {
+    color: var(--gray-600);
     margin: 0;
-    font-weight: 700;
-    color: #475569;
   }
+
+  .additional-content {
+    margin-top: 0;
+  }
+
+  .content-wrapper {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+  }
+
+  /* RESPONSIVE - TABLET */
   @media (max-width: 1024px) {
-    .convocatoria-head {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    .convocatoria-head__meta {
-      align-items: flex-start;
-    }
-    .convocatoria-focus__aside {
-      text-align: left;
-      justify-items: flex-start;
+    .convocatoria-table th.col-title {
+      min-width: 200px;
     }
   }
+
   @media (max-width: 768px) {
-    .convocatoria-table__wrapper {
-      padding: 18px;
+    .convocatoria-shell {
+      padding: 0 0.75rem;
+      gap: 1rem;
     }
-    .convocatoria-doc {
+
+    .header-container {
+      padding: 1.5rem;
+    }
+
+    .header-content {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .header-title {
+      font-size: 1.75rem;
+    }
+
+    .header-description {
+      font-size: 0.95rem;
+    }
+
+    .header-stats {
+      width: 100%;
+    }
+
+    .stats-card {
+      width: 100%;
+      min-width: auto;
+    }
+
+    .controls-container {
+      flex-direction: row;
+      align-items: center;
+      padding: 1rem;
+      gap: 1rem;
+    }
+
+    .control-group {
+      width: auto;
+      flex-direction: row;
+    }
+
+    .control-group label {
+      display: inline;
+      margin-bottom: 0;
+    }
+
+    .search-group {
+      flex-direction: row;
+    }
+
+    .search-box {
+      width: auto;
+    }
+
+    .search-input {
+      width: 200px;
+    }
+
+    .entries-select,
+    .search-input {
+      padding: 0.625rem 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .table-scroll-wrapper {
+      max-height: 500px;
+    }
+
+    .convocatoria-table {
+      font-size: 0.875rem;
+      min-width: 1200px;
+    }
+
+    .convocatoria-table th {
+      padding: 0.875rem 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .convocatoria-table td {
+      padding: 0.75rem 0.75rem;
+    }
+
+    .footer-container {
+      flex-direction: column;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .table-info {
+      order: 2;
+      width: 100%;
+    }
+
+    .table-pagination {
+      order: 1;
       width: 100%;
       justify-content: center;
+      margin-bottom: 1rem;
     }
-    .convocatoria-doc {
+  }
+
+  /* RESPONSIVE - MÓVIL */
+  @media (max-width: 480px) {
+    .convocatoria-shell {
+      padding: 0 0.5rem;
+      gap: 0.5rem;
+    }
+
+    .header-container {
+      padding: 1rem 0.875rem;
+    }
+
+    .header-content {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .header-badge {
+      font-size: 0.65rem;
+      padding: 0.3rem 0.65rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .header-title {
+      font-size: 1.35rem;
+      margin-bottom: 0.35rem;
+      font-weight: 800;
+    }
+
+    .header-description {
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .header-stats {
+      width: 100%;
+    }
+
+    .stats-card {
+      padding: 1rem;
+      width: 100%;
+    }
+
+    .stats-number {
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .stats-label {
+      font-size: 0.75rem;
+    }
+
+    .controls-container {
+      padding: 0.5rem;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .control-group {
+      width: 100%;
+      flex-direction: column;
+    }
+
+    .control-group label {
+      font-size: 0.75rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .entries-select,
+    .search-input {
+      font-size: 0.875rem;
+      padding: 0.5rem 0.625rem;
+    }
+
+    .search-input {
+      padding-left: 2.25rem;
+      width: 100%;
+    }
+
+    .search-icon {
+      width: 14px;
+      height: 14px;
+      left: 0.625rem;
+    }
+
+    .table-scroll-wrapper {
+      max-height: 400px;
+    }
+
+    .convocatoria-table {
+      font-size: 0.875rem;
+      min-width: 1200px;
+    }
+
+    .convocatoria-table th {
+      padding: 0.875rem 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .convocatoria-table td {
+      padding: 0.75rem 0.75rem;
+    }
+
+    .footer-container {
+      padding: 0.5rem;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .table-info {
+      font-size: 0.875rem;
+      width: 100%;
+      order: 2;
+    }
+
+    .table-pagination {
+      order: 1;
       width: 100%;
       justify-content: center;
+      margin-bottom: 0;
+    }
+
+    .pagination-pages {
+      display: none;
+    }
+
+    .empty-state {
+      padding: 2rem 1rem;
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+    }
+
+    .empty-state h3 {
+      font-size: 1rem;
+    }
+
+    .empty-state p {
+      font-size: 0.85rem;
+    }
+
+    .content-wrapper {
+      padding: 1rem;
     }
   }
 </style>
 
 <script>
-  jQuery(function($) {
-    var $table = $('#convocatoria-table');
-    if ($table.length && $.fn.DataTable) {
-      var highlightId = parseInt($table.data('highlightId'), 10) || 0;
-      var highlightSelector = highlightId ? '#convocatoria-' + highlightId : null;
-
-      var dataTable = $table.DataTable({
-        responsive: true,
-        pageLength: -1,
-        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, '<?php echo esc_js(__('Todos', 'ugel-theme')); ?>']],
-        language: {
-          url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-        },
-        order: [[3, 'desc']],
-        columnDefs: [
-          { targets: [5, 6, 7, 8], orderable: false, searchable: false },
-          { targets: 1, responsivePriority: 1 },
-          { targets: 4, responsivePriority: 2 }
-        ]
+document.addEventListener('DOMContentLoaded', function() {
+  const table = document.getElementById('convocatoria-table');
+  const rows = table.querySelectorAll('tbody tr');
+  let itemsPerPage = 10;
+  let currentPage = 1;
+  
+  function updatePagination() {
+    const totalPages = Math.ceil(rows.length / itemsPerPage);
+    const start = (currentPage - 1) * itemsPerPage + 1;
+    const end = Math.min(currentPage * itemsPerPage, rows.length);
+    
+    document.querySelector('.info-from').textContent = start;
+    document.querySelector('.info-to').textContent = end;
+    document.querySelector('.info-total').textContent = rows.length;
+    
+    rows.forEach((row, index) => {
+      row.style.display = (index >= start - 1 && index < end) ? '' : 'none';
+    });
+    
+    document.querySelector('.pagination-prev').disabled = currentPage === 1;
+    document.querySelector('.pagination-next').disabled = currentPage === totalPages;
+    
+    updatePageButtons(totalPages);
+  }
+  
+  function updatePageButtons(totalPages) {
+    const paginationPages = document.querySelector('.pagination-pages');
+    paginationPages.innerHTML = '';
+    
+    const maxButtons = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    
+    if (endPage - startPage + 1 < maxButtons) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      const btn = document.createElement('button');
+      btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+      btn.textContent = i;
+      btn.addEventListener('click', () => {
+        currentPage = i;
+        updatePagination();
       });
-
-      if (highlightSelector) {
-        var $highlightRow = $(highlightSelector);
-        if ($highlightRow.length) {
-          dataTable.on('draw', function() {
-            var $row = $(highlightSelector);
-            if ($row.length) {
-              $('html, body').stop(true).animate({
-                scrollTop: $row.offset().top - 160
-              }, 420);
-            }
-          });
-
-          setTimeout(function() {
-            $('html, body').stop(true).animate({
-              scrollTop: $highlightRow.offset().top - 160
-            }, 420);
-          }, 360);
-        }
-      }
+      paginationPages.appendChild(btn);
+    }
+  }
+  
+  document.querySelector('.pagination-prev').addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      updatePagination();
     }
   });
+  
+  document.querySelector('.pagination-next').addEventListener('click', () => {
+    const totalPages = Math.ceil(rows.length / itemsPerPage);
+    if (currentPage < totalPages) {
+      currentPage++;
+      updatePagination();
+    }
+  });
+  
+  updatePagination();
+  
+  const searchInput = document.getElementById('table-search');
+  searchInput.addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      const isVisible = text.includes(searchTerm);
+      row.style.display = isVisible ? '' : 'none';
+      if (isVisible) visibleCount++;
+    });
+    
+    currentPage = 1;
+    updatePagination();
+  });
+  
+  const entriesSelect = document.getElementById('show-entries');
+  entriesSelect.addEventListener('change', function(e) {
+    itemsPerPage = e.target.value === '-1' ? rows.length : parseInt(e.target.value);
+    currentPage = 1;
+    updatePagination();
+  });
+});
 </script>
 
-<?php get_footer(); ?>
+<?php get_footer();
