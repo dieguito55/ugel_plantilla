@@ -63,6 +63,7 @@ function setupMobileMenu() {
   menu.dataset.enhanced = '1';
   backdrop.dataset.enhanced = '1';
 
+  // Bloqueo de scroll SIN tocar el <body> (sin overflow/position fixed)
   const ScrollGuard = (() => {
     let enabled = false;
     const cancelableKeys = new Set([' ', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End']);

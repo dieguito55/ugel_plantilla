@@ -3065,6 +3065,7 @@
     box-shadow 0.45s cubic-bezier(0.23, 1, 0.320, 1);
 }
 
+
 .conv-card::before {
   content: "";
   position: absolute;
@@ -3080,7 +3081,29 @@
   );
   opacity: 0.6;
   transition: opacity 0.45s ease;
+  box-shadow: 0 2px 12px rgba(178, 255, 255, 0.25);
 }
+
+
+.conv-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, 
+    #B2FFFF 0%,
+    #8297FE 25%,
+    #000C97 50%,
+    #021F59 75%,
+    #000C97 100%
+  );
+  opacity: 0.3;
+  transition: all 0.45s cubic-bezier(0.23, 1, 0.320, 1);
+  box-shadow: -2px 0 16px rgba(178, 255, 255, 0.2);
+}
+
 
 .conv-card:hover {
   transform: translateY(-6px);
@@ -3116,17 +3139,26 @@
   box-shadow: inset 0 0 0 1px rgba(130, 151, 254, 0.18);
 }
 
-.conv-card__title {
+
+.conv-card .conv-thumb {
   margin: 0;
   font-size: 1.22rem;
   line-height: 1.35;
   color: #021F59;
 }
 
-.conv-card__title a {
-  color: inherit;
-  text-decoration: none;
-  transition: color 0.3s ease;
+
+.conv-card .conv-thumb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+    rgba(0, 12, 151, 0.08) 0%,
+    rgba(130, 151, 254, 0.04) 50%,
+    rgba(178, 255, 255, 0.02) 100%
+  );
+  z-index: 1;
+  transition: opacity 0.45s ease;
 }
 
 .conv-card__title a:hover,
@@ -3144,32 +3176,20 @@
   margin-top: auto;
 }
 
-.conv-card__footer .hub-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  font-weight: 600;
-  background: linear-gradient(135deg, #8297FE 0%, #000C97 100%);
-  border: none;
-  border-radius: 999px;
-  box-shadow: 0 10px 20px rgba(0, 12, 151, 0.25);
-}
 
-.conv-card__footer .hub-btn:hover,
-.conv-card__footer .hub-btn:focus {
-  background: linear-gradient(135deg, #000C97 0%, #021F59 100%);
-}
-
-.status-pill,
-.conv-card__status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+.conv-thumb .conv-status {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 7px 16px;
+  background: linear-gradient(135deg,
+    #000C97 0%,
+    #021F59 50%,
+    #000C97 100%
+  );
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
   text-transform: uppercase;
   border-radius: 999px;
   background: rgba(130, 151, 254, 0.14);
@@ -3186,9 +3206,9 @@
   background: currentColor;
 }
 
-.status-por-iniciar {
-  background: rgba(178, 255, 255, 0.4);
-  color: #0067A3;
+
+.conv-card > *:not(.conv-thumb) {
+  padding: 0 18px;
 }
 
 .status-en-proceso {
@@ -3196,14 +3216,32 @@
   color: #000C97;
 }
 
-.status-culminado {
-  background: rgba(2, 31, 89, 0.18);
+
+.conv-card .conv-title {
+  margin: 16px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.28;
   color: #021F59;
 }
 
-.status-sin-estado {
-  background: rgba(100, 116, 139, 0.18);
-  color: #475569;
+
+.conv-card .conv-title::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    #021F59, 
+    #000C97, 
+    #8297FE,
+    #000C97
+  );
+  box-shadow: 0 2px 10px rgba(2, 31, 89, 0.20);
+  transition: width 0.45s cubic-bezier(0.23, 1, 0.320, 1);
+  border-radius: 2px;
 }
 
 .conv-card__status {
@@ -3242,10 +3280,22 @@
   );
 }
 
-.convocatoria-archive__header {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+
+.conv-card .conv-excerpt {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #0F4A7F;
+  font-weight: 500;
+  letter-spacing: 0.15px;
+  
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  max-height: calc(1.55em * 3);
+  transition: color 0.3s ease;
 }
 
 .convocatoria-archive__title-block {
@@ -3268,7 +3318,8 @@
   color: #4C5A86;
 }
 
-.convocatoria-archive__controls {
+
+.conv-card .conv-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
@@ -3320,7 +3371,12 @@
     0 6px 18px rgba(130, 151, 254, 0.06);
 }
 
-.convocatoria-archive__table table {
+
+.conv-card .conv-actions .hub-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
   width: 100%;
   border-collapse: collapse;
   min-width: 760px;
@@ -3416,11 +3472,11 @@
   margin-top: 24px;
 }
 
-.convocatoria-archive__info {
-  margin: 0;
-  font-size: 0.95rem;
-  color: #4C5A86;
-}
+
+@media (max-width: 1024px) {
+  .conv-card {
+    min-height: 320px;
+  }
 
 .convocatoria-archive__pager {
   display: flex;
@@ -3445,11 +3501,11 @@
   cursor: not-allowed;
 }
 
-.convocatoria-archive__pager button.is-active {
-  background: linear-gradient(135deg, #8297FE 0%, #000C97 100%);
-  color: #FFFFFF;
-  box-shadow: 0 8px 18px rgba(0, 12, 151, 0.2);
-}
+
+@media (max-width: 768px) {
+  .conv-card {
+    min-height: 300px;
+  }
 
 .convocatoria-archive__empty {
   margin: 24px 0 0;
@@ -3471,9 +3527,10 @@
   }
 }
 
-@media (max-width: 768px) {
-  .convocatoria-archive {
-    padding: 56px 0 72px;
+
+@media (max-width: 480px) {
+  .conv-grid {
+    gap: 12px;
   }
 
   .convocatoria-archive__title {
@@ -3513,11 +3570,35 @@
     width: 100%;
   }
 
-  .convocatoria-archive__pager button {
-    flex: 1 1 auto;
-    text-align: center;
+
+
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
   }
 }
+
+.conv-card {
+  animation: fadeInUp 0.6s cubic-bezier(0.23, 1, 0.320, 1) both;
+}
+
+.conv-card:nth-child(1) { animation-delay: 0.08s; }
+.conv-card:nth-child(2) { animation-delay: 0.16s; }
+.conv-card:nth-child(3) { animation-delay: 0.24s; }
+.conv-card:nth-child(4) { animation-delay: 0.32s; }
+.conv-card:nth-child(5) { animation-delay: 0.40s; }
+.conv-card:nth-child(6) { animation-delay: 0.48s; }
+
+
+
 
 /* Comunicados list palette and spacings */
 :root {
