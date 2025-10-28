@@ -266,10 +266,14 @@ get_header(); ?>
         <!-- ===================== -->
         <!-- CONVOCATORIAS (3 x 2) -->
         <!-- ===================== -->
+        <?php
+          $convocatoria_page = get_page_by_path('convocatoria');
+          $convocatoria_url  = $convocatoria_page ? get_permalink($convocatoria_page) : home_url('/convocatoria/');
+        ?>
         <section class="hub-sec" aria-labelledby="hub-convocatorias">
           <header class="hub-head">
             <h2 id="hub-convocatorias" class="title-ltra">Convocatorias</h2>
-            <a class="hub-more" href="<?php echo esc_url( get_post_type_archive_link('convocatorias') ); ?>">Ver todas</a>
+            <a class="hub-more" href="<?php echo esc_url($convocatoria_url); ?>">Ver todas</a>
           </header>
 
           <?php

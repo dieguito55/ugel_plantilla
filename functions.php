@@ -955,7 +955,7 @@ function ugel_get_pdf_attachments($post_id) {
 }
 
 add_action('add_meta_boxes', function() {
-  foreach (array('post','convocatorias','comunicados') as $ptype) {
+  foreach (array('post','comunicados') as $ptype) {
     add_meta_box(
       'ugel_adjuntos_pdf',
       __('PDFs adjuntos', 'ugel-theme'),
@@ -1185,7 +1185,7 @@ add_shortcode('ugel_pdfs', function($atts){
 
 // Auto-inyección / Tokens
 add_filter('the_content', function($content){
-  if (is_singular(array('post','convocatorias','comunicados')) && in_the_loop() && is_main_query()){
+  if (is_singular(array('post','comunicados')) && in_the_loop() && is_main_query()){
     $items = ugel_get_pdf_attachments(get_the_ID());
 
     if (!empty($items)) {
@@ -1209,7 +1209,7 @@ add_filter('the_content', function($content){
 
 // REST API: exponer adjuntos_pdf
 add_action('rest_api_init', function(){
-  foreach (array('post','convocatorias','comunicados') as $ptype) {
+  foreach (array('post','comunicados') as $ptype) {
     register_rest_field($ptype, 'adjuntos_pdf', array(
       'get_callback' => function($post){
         return ugel_get_pdf_attachments($post['id']);
