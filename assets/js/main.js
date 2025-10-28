@@ -10,6 +10,7 @@
     initializeTheme();
   });
 
+  /* Theme boot sequence */
   function initializeTheme() {
     setupMenuSplitting();
     setupMobileMenu();
@@ -22,6 +23,7 @@
     setupSearchEnhancements();
   }
 
+  /* Menu label typography adjustments */
   function setupMenuSplitting() {
     function splitMenuLabels(selector) {
       const links = document.querySelectorAll(selector);
@@ -48,22 +50,27 @@
     }
     splitMenuLabels('.menu > a, .menu .menu-item > a');
   }
+/* Mobile menu: floating button, drawer, and backdrop */
 function setupMobileMenu() {
   const fab = document.getElementById('menuFab');
   const menu = document.getElementById('mobileMenu');
   const backdrop = document.getElementById('mobileBackdrop');
   if (!fab || !menu || !backdrop) return;
 
-  // Bloqueo de scroll SIN tocar el <body> (sin overflow/position fixed)
+  if (fab.dataset.enhanced === '1') return;
+  fab.dataset.enhanced = '1';
+  menu.dataset.enhanced = '1';
+  backdrop.dataset.enhanced = '1';
+
   const ScrollGuard = (() => {
     let enabled = false;
-
     const cancelableKeys = new Set([' ', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End']);
+
     const prevent = (e) => {
-      // Permitir scroll dentro del menú
       if (menu.contains(e.target)) return;
       e.preventDefault();
     };
+
     const preventKeys = (e) => {
       if (!enabled) return;
       if (cancelableKeys.has(e.key) && !menu.contains(e.target)) {
@@ -90,6 +97,7 @@ function setupMobileMenu() {
   })();
 
   let isMenuOpen = false;
+
   const open = () => {
     if (isMenuOpen) return;
     isMenuOpen = true;
@@ -97,14 +105,17 @@ function setupMobileMenu() {
     backdrop.classList.add('open');
     fab.classList.add('open');
     fab.setAttribute('aria-expanded', 'true');
-    document.body.classList.add('mm-open'); // solo para estilos, NO bloquea scroll
+    document.body.classList.add('mm-open');
     ScrollGuard.enable();
-    // Enfocar primer control del panel
     setTimeout(() => {
-      const first = menu.querySelector('a, button, input, select, textarea');
-      if (first) first.focus();
+      const focusables = menu.querySelectorAll('a, button, input, select, textarea');
+      const target = Array.from(focusables).find(el => !(el instanceof HTMLInputElement && el.type === 'search'));
+      if (target) {
+        target.focus();
+      }
     }, 80);
   };
+
   const close = () => {
     if (!isMenuOpen) return;
     isMenuOpen = false;
@@ -116,9 +127,9 @@ function setupMobileMenu() {
     ScrollGuard.disable();
     fab.focus();
   };
+
   const toggle = () => (isMenuOpen ? close() : open());
 
-  // Estado inicial limpio
   isMenuOpen = false;
   menu.classList.remove('open');
   backdrop.classList.remove('open');
@@ -126,7 +137,6 @@ function setupMobileMenu() {
   document.body.classList.remove('mm-open');
   ScrollGuard.disable();
 
-  // Abrir/cerrar con un click, sin “doble”
   let clicking = false;
   fab.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -136,27 +146,20 @@ function setupMobileMenu() {
     setTimeout(() => (clicking = false), 220);
   });
 
-  // Cerrar al tocar el backdrop
   backdrop.addEventListener('click', (e) => {
     e.stopPropagation();
     close();
   });
 
-  // Importante: QUITAMOS el “click fuera” en document (causa cierres involuntarios)
-  // Si lo necesitas, usa solo backdrop.
-
-  // Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isMenuOpen) close();
   });
 
-  // Cerrar al navegar dentro del menú
   menu.addEventListener('click', (e) => {
     const link = e.target.closest('a');
     if (link && link.getAttribute('href') !== '#') close();
   });
 
-  // Cerrar si pasa a desktop
   let resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
@@ -165,7 +168,6 @@ function setupMobileMenu() {
     }, 120);
   });
 
-  // Cerrar al cambiar orientación
   window.addEventListener('orientationchange', () => { if (isMenuOpen) close(); });
 }
 
@@ -173,7 +175,7 @@ function setupMobileMenu() {
 
   function setupStickySubheader() {
   const BODY_CLASS = 'nav-stick-subheader';
-  const BP = 1024; // mismo corte que tu CSS
+  const BP = 1024;
   const topbar = document.querySelector('.topbar');
   const subheader = document.querySelector('.subheader');
   if (!topbar || !subheader) return;
@@ -182,7 +184,6 @@ function setupMobileMenu() {
   let ticking = false;
 
   const update = () => {
-    // en móvil: no activamos el modo “solo subheader”
     if (window.innerWidth <= BP) {
       document.body.classList.remove(BODY_CLASS);
     } else {
@@ -209,12 +210,15 @@ function setupMobileMenu() {
 }
 
 
+/* Hero carousel transitions and controls */
 (function setupHeroCarousel() {
   const track   = document.getElementById('heroTrack');
   const btnPrev = document.getElementById('heroPrev');
   const btnNext = document.getElementById('heroNext');
   const dotsWrap= document.getElementById('heroDots');
   if (!track || !dotsWrap) return;
+
+  track.dataset.enhanced = '1';
 
   const allSlides = Array.from(track.querySelectorAll('.hero-slide'));
   if (allSlides.length === 0) return;
@@ -231,6 +235,7 @@ function setupMobileMenu() {
   });
 
   dotsWrap.innerHTML = '';
+  dotsWrap.dataset.enhanced = '1';
   if (slides.length > 1) {
     slides.forEach((_, idx) => {
       const dot = document.createElement('button');
@@ -354,6 +359,7 @@ function setupMobileMenu() {
   }
 })();
 
+  /* Form submissions and search suggestion binding */
   function setupForms() {
     const newsletterForm = document.getElementById('newsletterForm');
     if (newsletterForm) {
@@ -368,6 +374,7 @@ function setupMobileMenu() {
     searchInputs.forEach(setupSearchSuggestions);
   }
 
+  /* Newsletter subscription flow */
   function handleNewsletterSubmit(e) {
     e.preventDefault();
     const form = e.target;
@@ -389,6 +396,7 @@ function setupMobileMenu() {
       .finally(() => { submitBtn.disabled = false; submitBtn.textContent = 'Suscribirme'; });
   }
 
+  /* Lazy loading for deferred media */
   function setupLazyLoading() {
     if ('IntersectionObserver' in window) {
       const imageObserver = new IntersectionObserver((entries, observer) => {
@@ -409,6 +417,7 @@ function setupMobileMenu() {
     }
   }
 
+  /* Smooth scrolling for anchor navigation */
   function setupSmoothScrolling() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function(e) {
@@ -424,6 +433,7 @@ function setupMobileMenu() {
     });
   }
 
+  /* Accessibility helpers and screen reader support */
   function setupAccessibility() {
     document.addEventListener('keydown', handleTabTrap);
     document.addEventListener('focusin', e => {
@@ -437,6 +447,7 @@ function setupMobileMenu() {
     };
   }
 
+  /* Live search suggestions in desktop and mobile forms */
   function setupSearchSuggestions(input) {
     let timeout;
     input.addEventListener('input', function() {
@@ -469,6 +480,7 @@ function setupMobileMenu() {
     });
   }
 
+  /* Search analytics and validation */
   function setupSearchEnhancements() {
     const searchForm = document.getElementById('buscarForm');
     if (searchForm) {
