@@ -29,7 +29,10 @@ get_header(); ?>
 
       <!-- MAIN -->
       <div class="hub-main">
-        <?php if (have_posts()) : while (have_posts()) : the_post(); ?>
+        <?php if (have_posts()) : while (have_posts()) : the_post();
+          $page_words = str_word_count( wp_strip_all_tags( get_the_content() ) );
+          $page_minutes = max(1, ceil($page_words / 200));
+        ?>
 
           <main class="single-post-content" role="main">
             
@@ -79,6 +82,14 @@ get_header(); ?>
                   <span class="meta-text">Actualizado: <?php echo get_the_modified_date('j M Y'); ?></span>
                 </div>
                 <?php endif; ?>
+                <div class="meta-item tertiary-meta">
+                  <div class="meta-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                      <path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                    </svg>
+                  </div>
+                  <span class="meta-text"><?php echo esc_html( $page_minutes ); ?> min de lectura</span>
+                </div>
               </div>
             </header>
 
@@ -324,7 +335,11 @@ get_header(); ?>
 }
 
 .title-text {
-  display: inline-block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow: hidden;
   font-size: clamp(26px, 5vw, 42px);
   font-weight: 900;
   line-height: 1.18;
@@ -364,43 +379,49 @@ get_header(); ?>
 }
 
 .meta-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   backdrop-filter: blur(8px);
 }
 
 .primary-meta {
-  background: linear-gradient(135deg, 
-    rgba(0, 12, 151, 0.08),
-    rgba(130, 151, 254, 0.05)
-  );
-  border: 1px solid rgba(0, 12, 151, 0.15);
+  background: linear-gradient(135deg, rgba(0, 12, 151, 0.12), rgba(130, 151, 254, 0.08));
+  border: 1px solid rgba(0, 12, 151, 0.18);
   font-weight: 700;
   color: #021F59;
 }
 
 .primary-meta:hover {
-  background: linear-gradient(135deg, 
-    rgba(0, 12, 151, 0.12),
-    rgba(130, 151, 254, 0.08)
-  );
-  border-color: rgba(0, 12, 151, 0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(2, 31, 89, 0.20);
 }
 
 .secondary-meta {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(130, 151, 254, 0.12);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(178, 255, 255, 0.22));
+  border: 1px solid rgba(130, 151, 254, 0.18);
   color: #0F4A7F;
   font-weight: 600;
 }
 
 .secondary-meta:hover {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(130, 151, 254, 0.20);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(2, 31, 89, 0.16);
+}
+
+.tertiary-meta {
+  background: linear-gradient(135deg, rgba(178, 255, 255, 0.16), rgba(130, 151, 254, 0.10));
+  border: 1px solid rgba(130, 151, 254, 0.20);
+  color: #0F4A7F;
+  font-weight: 600;
+}
+
+.tertiary-meta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(2, 31, 89, 0.16);
 }
 
 .meta-icon {

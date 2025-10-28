@@ -628,7 +628,7 @@ body.nav-stick-subheader .subheader{ position:sticky; top:0; z-index:3000; box-s
   <span class="bars"></span>
 </button>
 
-<div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-labelledby="mobileMenuTitle">
+<div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-labelledby="mobileMenuTitle" tabindex="-1">
   <div class="mm-head" id="mobileMenuTitle">Menú</div>
 
   <!-- Buscador PRIMERO dentro del panel móvil -->
@@ -791,28 +791,49 @@ function initSearchSuggest(form){
   const OPEN_CLASS = 'open';
   const LS_KEY = 'UGEL:mmLastRef';
 
+  function syncAria(isOpen){
+    panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    if(backdrop){ backdrop.setAttribute('aria-hidden', isOpen ? 'false' : 'true'); }
+  }
+
   function openMenu(){
     fab.classList.add(OPEN_CLASS);
     panel.classList.add(OPEN_CLASS);
-    backdrop.classList.add(OPEN_CLASS);
+    if(backdrop){ backdrop.classList.add(OPEN_CLASS); }
     fab.setAttribute('aria-expanded','true');
     document.body.classList.add('mm-open');
+    syncAria(true);
+    window.setTimeout(()=>{ panel.focus({ preventScroll: true }); }, 20);
   }
   function closeMenu(){
     fab.classList.remove(OPEN_CLASS);
     panel.classList.remove(OPEN_CLASS);
-    backdrop.classList.remove(OPEN_CLASS);
+    if(backdrop){ backdrop.classList.remove(OPEN_CLASS); }
     fab.setAttribute('aria-expanded','false');
     document.body.classList.remove('mm-open');
+    syncAria(false);
     panel.querySelectorAll('li.is-open').forEach(li=>{
       li.classList.remove('is-open');
       const a = li.querySelector(':scope > a'); if(a) a.setAttribute('aria-expanded','false');
     });
+    window.setTimeout(()=>{ fab.focus({ preventScroll: true }); }, 10);
   }
 
+  function toggleMenu(){ panel.classList.contains(OPEN_CLASS) ? closeMenu() : openMenu(); }
+
   if(fab){
-    fab.addEventListener('click', (e)=>{ e.stopPropagation(); panel.classList.contains(OPEN_CLASS) ? closeMenu() : openMenu(); });
+    fab.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      toggleMenu();
+    });
+    fab.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        toggleMenu();
+      }
+    });
   }
+  if(panel){ syncAria(panel.classList.contains(OPEN_CLASS)); }
   if(backdrop){ backdrop.addEventListener('click', closeMenu); }
 
   document.addEventListener('click', (e)=>{
