@@ -1,327 +1,273 @@
 <?php
-if (!defined('ABSPATH')) {
-    exit;
-}
+if (!defined('ABSPATH')) exit;
 
-$anuncios = new WP_Query(array(
-    'post_type'      => 'anuncios_portada',
-    'post_status'    => 'publish',
-    'posts_per_page' => 5,
-    'orderby'        => array(
-        'menu_order' => 'ASC',
-        'date'       => 'DESC',
-    ),
-));
+$anuncios = new WP_Query([
+  'post_type'      => 'anuncios_portada',
+  'post_status'    => 'publish',
+  'posts_per_page' => 5,
+  'orderby'        => ['menu_order' => 'ASC', 'date' => 'DESC'],
+]);
 
 if ($anuncios->have_posts()):
 ?>
-<section class="front-announcements" aria-label="Anuncios destacados">
+<section class="ugel-announcements" aria-label="Anuncios destacados UGEL" role="region">
   <style>
-    .front-announcements {
-      position: relative;
-      z-index: 5;
-      display: flex;
-      justify-content: center;
-      padding: 32px 16px 0;
+    :root{
+      /* Paleta UGEL */
+      --primary:#000C97;
+      --secondary:#021F59;
+      --accent:#8297FE;
+      --cyan:#B2FFFF;
+      --white:#FFFFFF;
+      --ink:#0F172A;
+
+      /* Altura uniforme y responsive (clamp) */
+      /* Se ajusta a la pantalla: mínimo 200–220px, ideal en vh, tope 420px */
+      --img-h: clamp(200px, 50vh, 420px);
+
+      --shadow-lg:0 18px 50px rgba(2,31,89,.16);
+      --overlay-grad: linear-gradient(180deg, rgba(0,0,0,.00) 0%, rgba(0,0,0,.08) 52%, rgba(0,0,0,.14) 100%);
+      --overlay-glow: radial-gradient(520px 320px at 18% 22%, rgba(178,255,255,.04), transparent 62%);
     }
 
-    .front-announcements__card {
-      position: relative;
-      width: min(960px, 100%);
-      background: #ffffff;
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 22px 45px rgba(15, 75, 86, 0.18);
-      color: var(--ink);
-      isolation: isolate;
+    *{box-sizing:border-box}
+
+    /* Fondo aún más transparente y con blur moderado */
+    .ugel-announcements{
+      position:fixed; inset:0; z-index:9999;
+      display:grid; place-items:center;
+      padding:8px;
+      background:linear-gradient(135deg, rgba(2,31,89,.10) 0%, rgba(0,12,151,.08) 100%);
+      backdrop-filter:blur(4px);
+      animation:fadeBg .22s ease-out;
+    }
+    @keyframes fadeBg{from{opacity:0;backdrop-filter:blur(0)}to{opacity:1;backdrop-filter:blur(4px)}}
+    .ugel-announcements[hidden]{display:none!important}
+
+    /* Contenedor se “encoge” a la imagen, pero no excede el viewport */
+    .ugel-announcements__container{
+      position:relative;
+      display:inline-block;       /* shrink-to-fit → se ajusta al ancho real de la imagen */
+      max-width:96vw;             /* nunca más ancho que el viewport */
+      background:var(--white);
+      border-radius:10px;
+      overflow:hidden;
+      box-shadow:var(--shadow-lg);
+      line-height:0;              /* elimina espacios colapsados alrededor de la img */
     }
 
-    .front-announcements__track {
-      position: relative;
-      width: 100%;
-      height: auto;
-      overflow: hidden;
-      transition: height 280ms ease;
+    /* Botón cerrar (pequeño) */
+    .ugel-announcements__close-fab{
+      position:absolute; top:6px; right:6px; z-index:6;
+      width:24px; height:24px; border:none; border-radius:6px;
+      display:grid; place-items:center;
+      background:rgba(255,255,255,.70);
+      color:var(--secondary); font-size:14px; cursor:pointer;
+      backdrop-filter:blur(2px); transition:.16s ease;
+    }
+    .ugel-announcements__close-fab:hover,
+    .ugel-announcements__close-fab:focus-visible{
+      background:#fff; color:var(--primary);
+      outline:2px solid #e0e7ff; outline-offset:2px;
+      transform:scale(1.05);
     }
 
-    .front-announcements__slide {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      opacity: 0;
-      visibility: hidden;
-      transform: scale(0.985);
-      transition: opacity 320ms ease, visibility 320ms ease, transform 320ms ease;
-      background: #ffffff;
+    /* Pista y slides */
+    .ugel-announcements__track{ position:relative; }
+    .ugel-announcements__slide{
+      position:absolute; inset:0;
+      opacity:0; visibility:hidden; transform:translateY(10px);
+      transition:opacity .26s cubic-bezier(.34,1.56,.64,1), transform .26s cubic-bezier(.34,1.56,.64,1), visibility .26s;
+      white-space:nowrap; /* evita saltos que agreguen espacio */
+    }
+    .ugel-announcements__slide.is-active{ position:static; opacity:1; visibility:visible; transform:none; }
+
+    /* Media: ALTURA IGUAL para todas, ancho por proporción; no desborda el viewport */
+    .ugel-announcements__media{
+      position:relative; display:inline-flex; justify-content:center; align-items:center;
+      text-decoration:none;
+    }
+    .ugel-announcements__media img{
+      display:block;
+      height:var(--img-h);   /* ← altura uniforme */
+      width:auto;            /* ← ancho según relación de aspecto */
+      max-width:96vw;        /* ← tope: nunca más ancho que el viewport */
     }
 
-    .front-announcements__slide.is-active {
-      opacity: 1;
-      visibility: visible;
-      transform: scale(1);
+    /* Overlay sutil (más transparente) */
+    .ugel-announcements__media::before{
+      content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
+      background: var(--overlay-grad), var(--overlay-glow);
     }
 
-    .front-announcements__media {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      background: #d6e9ef;
-      overflow: hidden;
+    /* Texto sobre imagen (compacto responsive) */
+    .ugel-announcements__media-caption{
+      position:absolute; inset:0; z-index:3;
+      display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:4px;
+      padding:10px 10px; color:#fff; text-align:center;
+    }
+    .ugel-announcements__label{
+      display:inline-block; padding:3px 7px; border-radius:999px;
+      background:rgba(130,151,254,.10); border:1px solid rgba(130,151,254,.22);
+      color:#E6F0FF; font:800 9px/1 'Inter',system-ui,sans-serif; text-transform:uppercase; letter-spacing:.7px;
+      backdrop-filter:blur(1px);
+    }
+    .ugel-announcements__headline{
+      margin:0; max-width:min(70ch, 92%);
+      font:800 clamp(12px,2.6vw,18px)/1.25 'Inter', system-ui, sans-serif; letter-spacing:-.1px;
+      text-shadow:0 2px 10px rgba(0,0,0,.28);
+    }
+    .ugel-announcements__excerpt{
+      margin:0; max-width:min(80ch, 94%);
+      font:500 clamp(11px,2.2vw,14px)/1.5 'Inter', system-ui, sans-serif; letter-spacing:.12px; opacity:.94;
     }
 
-    .front-announcements__media img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
+    /* Flechas (pequeñas, se posicionan dentro del ancho real de la imagen) */
+    .ugel-announcements__navigation{
+      position:absolute; inset:0; z-index:5;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 6px; pointer-events:none;
+    }
+    .ugel-announcements__arrow{
+      pointer-events:auto; width:24px; height:24px; border-radius:6px;
+      background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35);
+      color:#fff; font-size:14px; display:grid; place-items:center; cursor:pointer;
+      transition:.16s ease; backdrop-filter:blur(2px);
+    }
+    .ugel-announcements__arrow:hover,
+    .ugel-announcements__arrow:focus-visible{ background:rgba(255,255,255,.30); border-color:#fff; transform:scale(1.06); }
+    .ugel-announcements__arrow[hidden]{display:none!important}
+
+    /* Dots centrados bajo la imagen */
+    .ugel-announcements__controls{
+      position:absolute; left:50%; bottom:6px; transform:translateX(-50%);
+      z-index:5; display:flex; gap:5px;
+    }
+    .ugel-announcements__dot{
+      width:6px; height:6px; border-radius:50%;
+      background:rgba(130,151,254,.26); border:none; cursor:pointer; transition:.16s ease;
+      box-shadow:0 2px 6px rgba(2,31,89,.16);
+    }
+    .ugel-announcements__dot.is-active{
+      background:var(--accent); transform:scale(1.18);
+      box-shadow:0 6px 12px rgba(130,151,254,.28);
     }
 
-    .front-announcements__media--noimage {
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      background: linear-gradient(135deg, rgba(0, 183, 177, 0.12), rgba(15, 75, 86, 0.22));
-    }
+    /* Responsividad fina por tamaño/orientación */
+    @media (max-width:920px){ :root { --img-h: clamp(200px, 48vh, 380px); } }
+    @media (max-width:640px){ :root { --img-h: clamp(180px, 44vh, 320px); } }
+    @media (max-width:420px){ :root { --img-h: clamp(160px, 42vh, 280px); } }
 
-    .front-announcements__title {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      right: 20px;
-      padding: 12px 20px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.9);
-      font-size: clamp(20px, 3vw, 28px);
-      font-weight: 800;
-      line-height: 1.2;
-      color: var(--teal);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      box-shadow: 0 16px 35px rgba(5, 71, 70, 0.18);
-    }
-
-    .front-announcements__media--noimage .front-announcements__title {
-      position: static;
-      margin: 24px;
-    }
-
-    .front-announcements__body {
-      padding: 24px clamp(20px, 6vw, 48px) 36px;
-      font-size: 18px;
-      line-height: 1.6;
-      max-height: 320px;
-      overflow-y: auto;
-    }
-
-    .front-announcements__body p {
-      margin: 0 0 16px;
-    }
-
-    .front-announcements__body p:last-child {
-      margin-bottom: 0;
-    }
-
-    .front-announcements__arrows {
-      position: absolute;
-      inset-block: 0;
-      inset-inline: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      pointer-events: none;
-    }
-
-    .front-announcements__arrow {
-      pointer-events: all;
-      border: none;
-      background: rgba(255, 255, 255, 0.9);
-      color: var(--teal);
-      width: 54px;
-      height: 54px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      font-size: 32px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 180ms ease, box-shadow 180ms ease;
-      box-shadow: 0 16px 40px rgba(7, 71, 70, 0.18);
-    }
-
-    .front-announcements__arrow:focus-visible,
-    .front-announcements__arrow:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 22px 60px rgba(7, 71, 70, 0.22);
-      outline: none;
-    }
-
-    .front-announcements__arrow[hidden] {
-      display: none;
-    }
-
-    @media (max-width: 768px) {
-      .front-announcements {
-        padding-inline: 12px;
-      }
-
-      .front-announcements__card {
-        border-radius: 16px;
-      }
-
-      .front-announcements__title {
-        top: 16px;
-        left: 16px;
-        right: 16px;
-        padding: 10px 16px;
-        border-radius: 12px;
-      }
-
-      .front-announcements__body {
-        padding: 20px 20px 28px;
-        font-size: 16px;
-      }
-
-      .front-announcements__arrow {
-        width: 46px;
-        height: 46px;
-        font-size: 26px;
-      }
-
-      .front-announcements__media--noimage .front-announcements__title {
-        margin: 20px;
-      }
+    @media (orientation:landscape) and (max-height:480px){
+      :root { --img-h: clamp(150px, 70vh, 260px); }
     }
   </style>
 
-  <div class="front-announcements__card" data-announcement-rotator>
-    <div class="front-announcements__track">
+  <div class="ugel-announcements__container" data-announcement-rotator>
+    <button class="ugel-announcements__close-fab" type="button" aria-label="Cerrar">✕</button>
+
+    <div class="ugel-announcements__track">
       <?php
       $index = 0;
-      while ($anuncios->have_posts()):
-          $anuncios->the_post();
-          $index++;
-          $is_active = $index === 1 ? ' is-active' : '';
-          $imagen = get_the_post_thumbnail_url(get_the_ID(), 'large');
+      while($anuncios->have_posts()):
+        $anuncios->the_post();
+        $index++;
+        $is_active   = $index === 1 ? ' is-active' : '';
+        $imagen      = get_the_post_thumbnail_url(get_the_ID(), 'full');
+        $meta_url    = get_post_meta(get_the_ID(), '_anuncio_url', true);
+        $meta_target = get_post_meta(get_the_ID(), '_anuncio_target', true) ?: '_self';
+        $href        = $meta_url ? $meta_url : get_permalink();
+        $rel_attr    = ($meta_target === '_blank') ? 'noopener noreferrer' : '';
+        $excerpt     = wp_strip_all_tags( wp_trim_words(get_the_content(), 20, '…') );
       ?>
-      <article class="front-announcements__slide<?php echo esc_attr($is_active); ?>" data-index="<?php echo esc_attr($index - 1); ?>">
-        <?php if ($imagen): ?>
-        <figure class="front-announcements__media">
-          <img src="<?php echo esc_url($imagen); ?>" alt="<?php echo esc_attr(get_the_title()); ?>" loading="lazy">
-          <figcaption class="front-announcements__title"><?php echo esc_html(get_the_title()); ?></figcaption>
-        </figure>
-        <?php else: ?>
-        <figure class="front-announcements__media front-announcements__media--noimage">
-          <figcaption class="front-announcements__title"><?php echo esc_html(get_the_title()); ?></figcaption>
-        </figure>
-        <?php endif; ?>
-        <div class="front-announcements__body">
-          <?php echo wp_kses_post(wpautop(get_the_content())); ?>
+      <article class="ugel-announcements__slide<?php echo esc_attr($is_active); ?>" data-index="<?php echo esc_attr($index - 1); ?>">
+        <a class="ugel-announcements__media"
+           href="<?php echo esc_url($href); ?>"
+           target="<?php echo esc_attr($meta_target); ?>"
+           rel="<?php echo esc_attr($rel_attr); ?>"
+           title="<?php echo esc_attr(get_the_title()); ?>">
+          <?php if ($imagen): ?>
+            <img src="<?php echo esc_url($imagen); ?>" alt="<?php echo esc_attr(get_the_title()); ?>">
+          <?php endif; ?>
+          <div class="ugel-announcements__media-caption" aria-hidden="false">
+            <span class="ugel-announcements__label">Comunicado</span>
+            <h3 class="ugel-announcements__headline"><?php echo esc_html(get_the_title()); ?></h3>
+            <p class="ugel-announcements__excerpt"><?php echo esc_html($excerpt); ?></p>
+          </div>
+        </a>
+
+        <div class="ugel-announcements__navigation" aria-hidden="false">
+          <button class="ugel-announcements__arrow ugel-announcements__arrow--prev" type="button" aria-label="Anterior">‹</button>
+          <button class="ugel-announcements__arrow ugel-announcements__arrow--next" type="button" aria-label="Siguiente">›</button>
         </div>
       </article>
       <?php endwhile; wp_reset_postdata(); ?>
-    </div>
 
-    <div class="front-announcements__arrows" aria-hidden="true">
-      <button class="front-announcements__arrow front-announcements__arrow--prev" type="button" aria-label="Anterior">‹</button>
-      <button class="front-announcements__arrow front-announcements__arrow--next" type="button" aria-label="Siguiente">›</button>
+      <div class="ugel-announcements__controls" role="tablist" aria-label="Paginación de comunicados">
+        <?php for ($i = 0; $i < $index; $i++): ?>
+          <button class="ugel-announcements__dot <?php echo $i === 0 ? 'is-active' : ''; ?>"
+                  data-dot="<?php echo $i; ?>"
+                  role="tab"
+                  aria-selected="<?php echo $i === 0 ? 'true' : 'false'; ?>"
+                  aria-label="Ir al comunicado <?php echo $i + 1; ?>">
+          </button>
+        <?php endfor; ?>
+      </div>
     </div>
   </div>
 
   <script>
-    (function() {
-      const root = document.querySelector('[data-announcement-rotator]');
-      if (!root) {
-        return;
-      }
+    (function(){
+      const root   = document.querySelector('[data-announcement-rotator]');
+      if(!root) return;
 
-      const track = root.querySelector('.front-announcements__track');
-      const slides = root.querySelectorAll('.front-announcements__slide');
-      const prevBtn = root.querySelector('.front-announcements__arrow--prev');
-      const nextBtn = root.querySelector('.front-announcements__arrow--next');
-      const AUTO_DELAY = 5000;
-      let active = 0;
-      let autoTimer = null;
+      const section   = root.closest('.ugel-announcements');
+      const slides    = Array.from(root.querySelectorAll('.ugel-announcements__slide'));
+      const dots      = Array.from(root.querySelectorAll('.ugel-announcements__dot'));
+      const closeFab  = root.querySelector('.ugel-announcements__close-fab');
 
-      if (!slides.length) {
-        prevBtn?.setAttribute('hidden', 'hidden');
-        nextBtn?.setAttribute('hidden', 'hidden');
-        return;
-      }
+      const AUTO_DELAY = 6000;
+      const ROTATE_MIN = 2;
+      let active = 0, autoTimer = null;
 
-      function syncHeight() {
-        if (!track) {
-          return;
-        }
-        const activeSlide = slides[active];
-        if (activeSlide) {
-          track.style.height = activeSlide.scrollHeight + 'px';
-        }
-      }
-
-      function setActive(index) {
-        slides.forEach((slide, idx) => {
-          slide.classList.toggle('is-active', idx === index);
+      function setActive(index){
+        slides.forEach((s,i)=> s.classList.toggle('is-active', i===index));
+        dots.forEach((d,i)=>{
+          d.classList.toggle('is-active', i===index);
+          d.setAttribute('aria-selected', i===index ? 'true' : 'false');
         });
         active = index;
-        syncHeight();
       }
+      const next = ()=> setActive((active + 1) % slides.length);
+      const prev = ()=> setActive((active - 1 + slides.length) % slides.length);
 
-      function next() {
-        const nextIndex = (active + 1) % slides.length;
-        setActive(nextIndex);
-      }
+      function startAuto(){ if(slides.length >= ROTATE_MIN){ stopAuto(); autoTimer = setInterval(next, AUTO_DELAY); } }
+      function stopAuto(){ if(autoTimer){ clearInterval(autoTimer); autoTimer=null; } }
 
-      function prev() {
-        const prevIndex = (active - 1 + slides.length) % slides.length;
-        setActive(prevIndex);
-      }
-
-      function startAuto() {
-        if (slides.length < 2) {
-          return;
+      root.addEventListener('click', (e)=>{
+        if(e.target.classList.contains('ugel-announcements__arrow--prev')){ prev(); startAuto(); }
+        if(e.target.classList.contains('ugel-announcements__arrow--next')){ next(); startAuto(); }
+        if(e.target.classList.contains('ugel-announcements__dot')){
+          const i = Number(e.target.getAttribute('data-dot')); setActive(i); startAuto();
         }
-        stopAuto();
-        autoTimer = setInterval(next, AUTO_DELAY);
-      }
-
-      function stopAuto() {
-        if (autoTimer) {
-          clearInterval(autoTimer);
-          autoTimer = null;
-        }
-      }
-
-      prevBtn?.addEventListener('click', () => {
-        prev();
-        startAuto();
-      });
-
-      nextBtn?.addEventListener('click', () => {
-        next();
-        startAuto();
       });
 
       root.addEventListener('mouseenter', stopAuto);
       root.addEventListener('mouseleave', startAuto);
 
+      function closeAll(){ section?.setAttribute('hidden','hidden'); stopAuto(); }
+      closeFab?.addEventListener('click', closeAll);
+      section?.addEventListener('click', e=>{ if(e.target===section) closeAll(); });
+
+      root.addEventListener('keydown', e=>{
+        if(e.key==='ArrowRight'){ e.preventDefault(); next(); startAuto(); }
+        if(e.key==='ArrowLeft'){  e.preventDefault(); prev(); startAuto(); }
+        if(e.key==='Escape'){     e.preventDefault(); closeAll(); }
+      });
+
       setActive(0);
-      syncHeight();
-
-      window.addEventListener('resize', syncHeight);
-
-      if (slides.length < 2) {
-        prevBtn?.setAttribute('hidden', 'hidden');
-        nextBtn?.setAttribute('hidden', 'hidden');
-        window.removeEventListener('resize', syncHeight);
-      } else {
-        startAuto();
-      }
+      startAuto();
     })();
   </script>
 </section>
-<?php
-endif;
-?>
+<?php endif; ?>

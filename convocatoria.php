@@ -113,10 +113,7 @@ if ($convocatorias_query->have_posts()) {
             <p class="header-description"><?php echo esc_html($directory_summary); ?></p>
           </div>
           <div class="header-stats">
-            <div class="stats-card">
-              <span class="stats-number"><?php echo esc_html(number_format_i18n(count($convocatorias))); ?></span>
-              <span class="stats-label"><?php esc_html_e('Convocatorias', 'ugel-theme'); ?></span>
-            </div>
+            
           </div>
         </div>
       </div>

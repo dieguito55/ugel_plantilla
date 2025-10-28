@@ -15,7 +15,7 @@
     setupMenuSplitting();
     setupMobileMenu();
     setupStickySubheader();
-    setupHeroCarousel();
+    
     setupInterestLinks();
     setupSiteViewsBadge();
     // Ensure it renders even if footer mounts late

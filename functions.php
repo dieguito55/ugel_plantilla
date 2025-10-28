@@ -194,6 +194,64 @@ class UGELTheme {
             'menu_icon'    => 'dashicons-megaphone',
             'show_in_rest' => true,
         ));
+        /* ===========================================================
+ * Metabox: URL de redirección para 'anuncios_portada'
+ * =========================================================== */
+add_action('add_meta_boxes', function () {
+  add_meta_box(
+    'anuncio_meta',
+    __('Propiedades del Anuncio', 'ugel-theme'),
+    'ugel_anuncio_meta_callback',
+    'anuncios_portada',
+    'normal',
+    'high'
+  );
+});
+
+function ugel_anuncio_meta_callback($post) {
+  wp_nonce_field('ugel_anuncio_save_meta', 'ugel_anuncio_nonce');
+
+  $url    = get_post_meta($post->ID, '_anuncio_url', true);
+  $target = get_post_meta($post->ID, '_anuncio_target', true) ?: '_self';
+  ?>
+  <style>
+    .anuncio-grid{display:grid;grid-template-columns:1fr 220px;gap:14px}
+    .anuncio-field{margin:0 0 10px}
+    .anuncio-field label{display:block;font-weight:700;margin:0 0 6px}
+    .anuncio-field input[type="text"], .anuncio-field select{width:100%}
+    .anuncio-hint{font-size:12px;color:#65737e;margin-top:4px}
+  </style>
+  <div class="anuncio-grid">
+    <div class="anuncio-field">
+      <label for="anuncio_url"><?php echo esc_html__('URL de destino', 'ugel-theme'); ?></label>
+      <input type="text" id="anuncio_url" name="anuncio_url" value="<?php echo esc_attr($url); ?>" placeholder="https://...">
+      <div class="anuncio-hint"><?php echo esc_html__('A dónde debe ir el clic del anuncio.', 'ugel-theme'); ?></div>
+    </div>
+    <div class="anuncio-field">
+      <label for="anuncio_target"><?php echo esc_html__('Abrir enlace', 'ugel-theme'); ?></label>
+      <select id="anuncio_target" name="anuncio_target">
+        <option value="_self"  <?php selected($target, '_self');  ?>><?php echo esc_html__('Misma pestaña','ugel-theme'); ?></option>
+        <option value="_blank" <?php selected($target, '_blank'); ?>><?php echo esc_html__('Nueva pestaña','ugel-theme'); ?></option>
+      </select>
+    </div>
+  </div>
+  <?php
+}
+
+/* Guardado seguro del metabox */
+add_action('save_post_anuncios_portada', function ($post_id) {
+  if (!isset($_POST['ugel_anuncio_nonce']) ||
+      !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ugel_anuncio_nonce'])), 'ugel_anuncio_save_meta')) return;
+  if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+  if (!current_user_can('edit_post', $post_id)) return;
+
+  $url    = isset($_POST['anuncio_url'])    ? esc_url_raw(trim(wp_unslash($_POST['anuncio_url']))) : '';
+  $target = isset($_POST['anuncio_target']) ? (function_exists('ugel_sanitize_target') ? ugel_sanitize_target(wp_unslash($_POST['anuncio_target'])) : (in_array($_POST['anuncio_target'], array('_self','_blank'), true) ? $_POST['anuncio_target'] : '_self')) : '_self';
+
+  update_post_meta($post_id, '_anuncio_url', $url);
+  update_post_meta($post_id, '_anuncio_target', $target);
+});
+
     }
 
     // SIN taxonomías extras para convocatorias (se deja el método vacío por compatibilidad)
