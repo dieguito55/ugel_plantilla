@@ -2492,10 +2492,40 @@ if (!function_exists('ugel_seo_bootstrap')) {
     add_action('after_setup_theme', 'ugel_seo_bootstrap');
 }
 
-if (!function_exists('ugel_language_attributes')) {
-    function ugel_language_attributes($output, $doctype) {
-        $lang = 'es-PE';
-        $dir  = is_rtl() ? 'rtl' : 'ltr';
+// Canonical
+add_action('wp_head', function(){
+    if (is_admin() || ugel_has_seo_plugin()) return;
+
+    $desc = '';
+    if (is_singular()) {
+        global $post;
+        if ($post) {
+            $desc = has_excerpt($post) ? $post->post_excerpt : wp_strip_all_tags($post->post_content);
+        }
+    } elseif (is_category()) {
+        $desc = term_description();
+    } elseif (is_post_type_archive()) {
+        $obj = get_queried_object();
+        if ($obj && !empty($obj->description)) {
+            $desc = $obj->description;
+        }
+    } else {
+        $desc = get_bloginfo('description');
+    }
+
+    if ($desc) {
+        $desc = preg_replace('/\s+/', ' ', wp_strip_all_tags($desc));
+        $desc = trim(wp_trim_words($desc, 36, '…'));
+        if ($desc) {
+            echo '<meta name="description" content="' . esc_attr($desc) . '">' . "\n";
+        }
+    }
+}, 4);
+
+add_action('wp_head', function(){
+    if (is_admin() || ugel_has_seo_plugin()) return;
+    echo '<link rel="canonical" href="'.esc_url((is_singular() ? get_permalink() : home_url(add_query_arg(array(), $GLOBALS['wp']->request)))) . '/">'. "\n";
+}, 5);
 
         if ('html' === $doctype) {
             $output = sprintf('lang="%s" dir="%s"', esc_attr($lang), esc_attr($dir));
@@ -2530,22 +2560,25 @@ if (!function_exists('ugel_filter_document_title')) {
             $context = $title;
         }
 
-        $context = $context ?: $title;
-        $context = $context ?: $site_name;
-
-        return sprintf('%s | %s', $context, $site_name);
+    if (is_front_page() || is_home()) {
+        $schemas[] = array(
+            '@context' => 'https://schema.org',
+            '@type'    => 'WebSite',
+            'url'      => home_url('/'),
+            'name'     => get_bloginfo('name'),
+            'description' => get_bloginfo('description'),
+            'potentialAction' => array(
+                '@type'       => 'SearchAction',
+                'target'      => home_url('/?s={search_term_string}'),
+                'query-input' => 'required name=search_term_string'
+            )
+        );
     }
-}
 
-if (!function_exists('ugel_legacy_wp_title')) {
-    function ugel_legacy_wp_title($title, $sep, $seplocation) {
-        $doc_title = wp_get_document_title();
-        return $doc_title ?: $title;
-    }
-}
-
-if (!function_exists('ugel_get_meta_description')) {
-    function ugel_get_meta_description() {
+    if (!is_front_page()) {
+        $items = array(
+            array('@type'=>'ListItem','position'=>1,'name'=>__('Inicio','ugel-theme'),'item'=>home_url('/'))
+        );
         if (is_singular()) {
             $post = get_queried_object();
             if ($post) {
