@@ -417,183 +417,241 @@ function setupMobileMenu() {
 
   /* Interest links: dots, drag/swipe, autoplay */
   function setupInterestLinks() {
-    const media = document.querySelector('.interest-links__media');
-    const ribbon = media?.querySelector('.logo-ribbon');
-    const track = ribbon?.querySelector('.logo-ribbon__track');
-    if (!media || !ribbon || !track) return;
+    const mediaBlocks = document.querySelectorAll('.interest-links__media');
+    if (!mediaBlocks.length) return;
 
-    const items = Array.from(track.querySelectorAll('.logo-item'));
-    if (!items.length) return;
+    mediaBlocks.forEach((media, index) => {
+      if (!media || media.dataset.enhanced === '1') return;
 
-    // Ensure base styles hook
-    ribbon.dataset.enhanced = '1';
+      const ribbon = media.querySelector('.logo-ribbon');
+      const track = ribbon?.querySelector('.logo-ribbon__track');
+      if (!ribbon || !track) return;
 
-    // Create dots container (once)
-    let dotsWrap = media.querySelector('#ilDots');
-    if (!dotsWrap) {
-      dotsWrap = document.createElement('div');
-      dotsWrap.id = 'ilDots';
-      dotsWrap.className = 'logo-ribbon__dots';
-      dotsWrap.setAttribute('role', 'tablist');
-      dotsWrap.setAttribute('aria-label', 'Paginación de accesos');
-      ribbon.insertAdjacentElement('afterend', dotsWrap);
-    }
+      const items = Array.from(track.querySelectorAll('.logo-item'));
+      if (!items.length) return;
 
-    let current = 0;
-    let pages = 1;
-    let itemsPerPage = 1;
-    let viewportWidth = 0;
-    let pageWidth = 0;
-    let autoplayTimer = null;
-    let paused = false;
-    const delay = 6000;
+      // Ensure base styles hook
+      ribbon.dataset.enhanced = '1';
+      media.dataset.enhanced = '1';
 
-    function calcLayout() {
-      viewportWidth = ribbon.clientWidth;
-      const firstItem = items[0];
-      const itemWidth = firstItem ? firstItem.getBoundingClientRect().width : Math.max(220, viewportWidth);
-      itemsPerPage = Math.max(1, Math.floor(viewportWidth / Math.max(1, itemWidth)));
-      pages = Math.max(1, Math.ceil(items.length / itemsPerPage));
-      pageWidth = viewportWidth; // full-width pages
-      buildDots();
-      snapTo(current, false);
-    }
+      const prevBtn = media.querySelector('.logo-ribbon__nav.is-prev');
+      const nextBtn = media.querySelector('.logo-ribbon__nav.is-next');
 
-    function buildDots() {
-      dotsWrap.innerHTML = '';
-      for (let i = 0; i < pages; i++) {
-        const dot = document.createElement('button');
-        dot.className = 'il-dot' + (i === current ? ' is-active' : '');
-        dot.type = 'button';
-        dot.setAttribute('role', 'tab');
-        dot.setAttribute('aria-selected', i === current ? 'true' : 'false');
-        dot.setAttribute('aria-label', `Ir a página ${i + 1}`);
-        dot.addEventListener('click', () => goTo(i, true));
-        dotsWrap.appendChild(dot);
-      }
-    }
-
-    function snapTo(idx, animate = true) {
-      current = ((idx % pages) + pages) % pages;
-      const x = -(current * pageWidth);
-      track.style.transition = animate ? 'transform 420ms cubic-bezier(.2,.65,.2,1)' : 'none';
-      track.style.transform = `translate3d(${x}px,0,0)`;
-      // Dots state
-      const children = dotsWrap.children;
-      for (let i = 0; i < children.length; i++) {
-        children[i].classList.toggle('is-active', i === current);
-        children[i].setAttribute('aria-selected', i === current ? 'true' : 'false');
-      }
-    }
-
-    function goTo(idx, user = false) {
-      snapTo(idx, true);
-      if (user) startAutoplay();
-    }
-    const next = () => goTo(current + 1);
-    const prev = () => goTo(current - 1);
-
-    function startAutoplay() {
-      stopAutoplay();
-      if (pages > 1) autoplayTimer = setInterval(() => { if (!paused) next(); }, delay);
-    }
-    function stopAutoplay() {
-      if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
-    }
-
-    // Drag / swipe
-    let startX = 0, dx = 0, dragging = false, baseX = 0;
-    let activePointerId = null;
-    const threshold = 60;
-
-    function onDown(e) {
-      if (dragging) return;
-      if (e.type === 'pointerdown' && e.pointerType === 'mouse' && e.button !== 0) {
-        return;
-      }
-      dragging = true;
-      ribbon.classList.add('is-dragging');
-      track.style.transition = 'none';
-      paused = true;
-      if (e.type === 'pointerdown') {
-        activePointerId = e.pointerId;
-        if (ribbon.setPointerCapture) {
-          ribbon.setPointerCapture(activePointerId);
-        }
-      }
-      if (e.cancelable) {
-        e.preventDefault();
-      }
-      const point = 'touches' in e ? e.touches[0] : e;
-      startX = point.clientX;
-      baseX = -current * pageWidth;
-    }
-
-    function onMove(e) {
-      if (!dragging) return;
-      if (e.type === 'pointermove' && activePointerId !== null && e.pointerId !== activePointerId) {
-        return;
-      }
-      const point = 'touches' in e ? e.touches[0] : e;
-      dx = point.clientX - startX;
-      track.style.transform = `translate3d(${baseX + dx}px,0,0)`;
-    }
-
-    function onUp(e) {
-      if (!dragging) return;
-      dragging = false;
-      ribbon.classList.remove('is-dragging');
-      if ((e?.type === 'pointerup' || e?.type === 'pointercancel') && activePointerId !== null && ribbon.releasePointerCapture) {
-        try {
-          ribbon.releasePointerCapture(activePointerId);
-        } catch (err) {
-          // ignore release errors (pointer already released)
-        }
-      }
-      activePointerId = null;
-      if (Math.abs(dx) > threshold) {
-        dx < 0 ? next() : prev();
+      // Create dots container (per instance)
+      let dotsWrap = media.querySelector('.logo-ribbon__dots');
+      if (!dotsWrap) {
+        dotsWrap = document.createElement('div');
+        dotsWrap.className = 'logo-ribbon__dots';
+        dotsWrap.setAttribute('role', 'tablist');
+        dotsWrap.setAttribute('aria-label', 'Paginación de accesos');
+        ribbon.insertAdjacentElement('afterend', dotsWrap);
       } else {
-        snapTo(current, true);
+        dotsWrap.innerHTML = '';
       }
-      dx = 0;
-      // Resume autoplay shortly after interaction
-      setTimeout(() => { paused = false; }, 500);
-      startAutoplay();
-    }
 
-    ribbon.addEventListener('dragstart', (event) => { event.preventDefault(); });
-    if (window.PointerEvent) {
-      ribbon.addEventListener('pointerdown', onDown);
-      ribbon.addEventListener('pointermove', onMove);
-      ribbon.addEventListener('pointerup', onUp);
-      ribbon.addEventListener('pointercancel', onUp);
-      window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
-      window.addEventListener('pointercancel', onUp);
-    } else {
-      ribbon.addEventListener('touchstart', onDown, { passive: true });
-      ribbon.addEventListener('touchmove', onMove, { passive: true });
-      ribbon.addEventListener('touchend', onUp, { passive: true });
-      ribbon.addEventListener('mousedown', onDown);
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-    }
+      let current = 0;
+      let pages = 1;
+      let itemsPerPage = 1;
+      let viewportWidth = 0;
+      let pageWidth = 0;
+      let autoplayTimer = null;
+      let paused = false;
+      const delay = 6000;
 
-    // Pause on hover/focus
-    ribbon.addEventListener('mouseenter', () => { paused = true; });
-    ribbon.addEventListener('mouseleave', () => { paused = false; });
+      function calcLayout() {
+        viewportWidth = ribbon.clientWidth;
+        const firstItem = items[0];
+        const itemWidth = firstItem ? firstItem.getBoundingClientRect().width : Math.max(220, viewportWidth);
+        const style = window.getComputedStyle(track);
+        const gapRaw = parseFloat(style.columnGap || style.gap || 0);
+        itemsPerPage = Math.max(1, Math.floor(viewportWidth / Math.max(1, itemWidth)));
+        pages = Math.max(1, Math.ceil(items.length / itemsPerPage));
+        current = Math.min(current, pages - 1);
+        const pageSpan = (itemWidth * itemsPerPage) + (Math.max(itemsPerPage - 1, 0) * gapRaw);
+        pageWidth = Math.max(1, Math.min(pageSpan || viewportWidth, track.scrollWidth / pages || viewportWidth));
+        buildDots();
+        snapTo(current, false);
+        updateNavState();
+      }
 
-    // Resize handling
-    let rTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(rTimer);
-      rTimer = setTimeout(() => { calcLayout(); }, 120);
+      function buildDots() {
+        if (!dotsWrap) return;
+        dotsWrap.innerHTML = '';
+        for (let i = 0; i < pages; i++) {
+          const dot = document.createElement('button');
+          dot.className = 'il-dot' + (i === current ? ' is-active' : '');
+          dot.type = 'button';
+          dot.setAttribute('role', 'tab');
+          dot.setAttribute('aria-selected', i === current ? 'true' : 'false');
+          dot.setAttribute('aria-label', `Ir a página ${i + 1}`);
+          dot.addEventListener('click', () => goTo(i, true));
+          dotsWrap.appendChild(dot);
+        }
+      }
+
+      function snapTo(idx, animate = true) {
+        pages = Math.max(pages, 1);
+        current = ((idx % pages) + pages) % pages;
+        const x = -(current * pageWidth);
+        track.style.transition = animate ? 'transform 420ms cubic-bezier(.2,.65,.2,1)' : 'none';
+        track.style.transform = `translate3d(${x}px,0,0)`;
+        // Dots state
+        if (dotsWrap) {
+          const children = dotsWrap.children;
+          for (let i = 0; i < children.length; i++) {
+            children[i].classList.toggle('is-active', i === current);
+            children[i].setAttribute('aria-selected', i === current ? 'true' : 'false');
+          }
+        }
+      }
+
+      function goTo(idx, user = false) {
+        snapTo(idx, true);
+        if (user) startAutoplay();
+      }
+      const next = () => goTo(current + 1);
+      const prev = () => goTo(current - 1);
+
+      function updateNavState() {
+        const disable = pages <= 1;
+        [prevBtn, nextBtn].forEach(btn => {
+          if (!btn) return;
+          btn.disabled = disable;
+          btn.setAttribute('aria-disabled', disable ? 'true' : 'false');
+        });
+      }
+
+      function startAutoplay() {
+        stopAutoplay();
+        if (pages > 1) autoplayTimer = setInterval(() => { if (!paused) next(); }, delay);
+      }
+      function stopAutoplay() {
+        if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
+      }
+
+      // Drag / swipe
+      let startX = 0, dx = 0, dragging = false, baseX = 0;
+      let activePointerId = null;
+      const threshold = 60;
+
+      function onDown(e) {
+        if (dragging) return;
+        if (e.type === 'pointerdown' && e.pointerType === 'mouse' && e.button !== 0) {
+          return;
+        }
+        if (e.target && e.target.closest('.logo-ribbon__nav')) {
+          return;
+        }
+        dragging = true;
+        ribbon.classList.add('is-dragging');
+        track.style.transition = 'none';
+        paused = true;
+        if (e.type === 'pointerdown') {
+          activePointerId = e.pointerId;
+          if (ribbon.setPointerCapture && e.pointerType !== 'mouse') {
+            ribbon.setPointerCapture(activePointerId);
+          }
+        }
+        const isMouse = e.type === 'pointerdown' && e.pointerType === 'mouse';
+        if (!isMouse && e.cancelable) {
+          e.preventDefault();
+        }
+        const point = 'touches' in e ? e.touches[0] : e;
+        startX = point.clientX;
+        baseX = -current * pageWidth;
+      }
+
+      function onMove(e) {
+        if (!dragging) return;
+        if (e.type === 'pointermove' && activePointerId !== null && e.pointerId !== activePointerId) {
+          return;
+        }
+        const point = 'touches' in e ? e.touches[0] : e;
+        dx = point.clientX - startX;
+        track.style.transform = `translate3d(${baseX + dx}px,0,0)`;
+      }
+
+      function onUp(e) {
+        if (!dragging) return;
+        dragging = false;
+        ribbon.classList.remove('is-dragging');
+        if ((e?.type === 'pointerup' || e?.type === 'pointercancel') && activePointerId !== null && ribbon.releasePointerCapture) {
+          try {
+            if (e.pointerType !== 'mouse') {
+              ribbon.releasePointerCapture(activePointerId);
+            }
+          } catch (err) {
+            // ignore release errors (pointer already released)
+          }
+        }
+        activePointerId = null;
+        if (Math.abs(dx) > threshold) {
+          dx < 0 ? next() : prev();
+        } else {
+          snapTo(current, true);
+        }
+        dx = 0;
+        // Resume autoplay shortly after interaction
+        setTimeout(() => { paused = false; }, 500);
+        startAutoplay();
+      }
+
+      prevBtn?.addEventListener('click', () => { goTo(current - 1, true); });
+      nextBtn?.addEventListener('click', () => { goTo(current + 1, true); });
+      media.addEventListener('mouseenter', () => { paused = true; });
+      media.addEventListener('mouseleave', () => { paused = false; });
+      media.addEventListener('focusin', () => { paused = true; });
+      media.addEventListener('focusout', () => { paused = false; });
+
+      ribbon.addEventListener('dragstart', (event) => { event.preventDefault(); });
+      if (window.PointerEvent) {
+        ribbon.addEventListener('pointerdown', onDown);
+        ribbon.addEventListener('pointermove', onMove);
+        ribbon.addEventListener('pointerup', onUp);
+        ribbon.addEventListener('pointercancel', onUp);
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onUp);
+      } else {
+        ribbon.addEventListener('touchstart', onDown, { passive: true });
+        ribbon.addEventListener('touchmove', onMove, { passive: true });
+        ribbon.addEventListener('touchend', onUp, { passive: true });
+        ribbon.addEventListener('mousedown', onDown);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+      }
+
+      // Pause on hover/focus
+      ribbon.addEventListener('mouseenter', () => { paused = true; });
+      ribbon.addEventListener('mouseleave', () => { paused = false; });
+
+      // Resize handling per instance
+      let resizeTimer;
+      const onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => { calcLayout(); }, 120);
+      };
+      window.addEventListener('resize', onResize);
+
+      // First layout + autoplay
+      calcLayout();
+      if (pages > 1) startAutoplay();
+
+      // Defensive cleanup if section is removed dynamically
+      const observer = new MutationObserver(() => {
+        if (!document.body.contains(media)) {
+          stopAutoplay();
+          window.removeEventListener('resize', onResize);
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          window.removeEventListener('pointercancel', onUp);
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
     });
-
-    // First layout + autoplay
-    calcLayout();
-    if (pages > 1) startAutoplay();
   }
 
   /* Form submissions and search suggestion binding */

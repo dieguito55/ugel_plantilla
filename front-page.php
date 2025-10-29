@@ -100,38 +100,40 @@ get_template_part('template-parts/front-announcements');
           $bgStyle = $img ? " style=\"background-image: url('" . esc_url($img) . "');\"" : '';
       ?>
         <article class="feature-card">
-          <div class="feature-card__bg"<?php echo $bgStyle; ?>></div>
-          
-          <div class="feature-card__wave"></div>
-          
-          <div class="feature-card__content">
-            <?php if ($svg): ?>
-              <div class="feature-card__icon" aria-hidden="true">
-                <?php echo $svg; ?>
-              </div>
-            <?php endif; ?>
-            
-            <h3 class="feature-card__title">
-              <?php echo esc_html($ttl); ?>
-            </h3>
-            
-            <?php if ($sub): ?>
-              <p class="feature-card__description">
-                <?php echo esc_html($sub); ?>
-              </p>
-            <?php endif; ?>
-            
-            <a 
-              class="feature-card__cta" 
-              href="<?php echo esc_url($url); ?>" 
-              target="<?php echo esc_attr($tgt); ?>"
-              aria-label="Acceder a <?php echo esc_attr($ttl); ?>"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </a>
-          </div>
+          <a
+            class="feature-card__link"
+            href="<?php echo esc_url($url); ?>"
+            target="<?php echo esc_attr($tgt); ?>"
+            aria-label="Acceder a <?php echo esc_attr($ttl); ?>"
+          >
+            <div class="feature-card__bg"<?php echo $bgStyle; ?>></div>
+
+            <div class="feature-card__wave"></div>
+
+            <div class="feature-card__content">
+              <?php if ($svg): ?>
+                <div class="feature-card__icon" aria-hidden="true">
+                  <?php echo $svg; ?>
+                </div>
+              <?php endif; ?>
+
+              <h3 class="feature-card__title">
+                <?php echo esc_html($ttl); ?>
+              </h3>
+
+              <?php if ($sub): ?>
+                <p class="feature-card__description">
+                  <?php echo esc_html($sub); ?>
+                </p>
+              <?php endif; ?>
+
+              <span class="feature-card__cta-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </span>
+            </div>
+          </a>
         </article>
       <?php endforeach; endif; ?>
     </div>
@@ -476,6 +478,9 @@ get_template_part('template-parts/front-announcements');
       
       <!-- IZQUIERDA: Carrusel (blanco, sin color) -->
       <div class="interest-links__media" aria-label="Carrusel de accesos rápidos">
+        <button class="logo-ribbon__nav is-prev" type="button" aria-label="Mostrar accesos anteriores">
+          <span aria-hidden="true">‹</span>
+        </button>
         <div class="logo-ribbon" aria-roledescription="carousel">
           <div class="logo-ribbon__track">
             <?php
@@ -509,6 +514,9 @@ get_template_part('template-parts/front-announcements');
             ?>
           </div>
         </div>
+        <button class="logo-ribbon__nav is-next" type="button" aria-label="Mostrar más accesos">
+          <span aria-hidden="true">›</span>
+        </button>
       </div>
 
       <!-- DERECHA: Título y subtítulo (colores sólidos) -->
