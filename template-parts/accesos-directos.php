@@ -545,7 +545,7 @@ $accesos = ugel_get_accesos(8);
 }
 
 .ax-media{
-  block-size: clamp(60px, 12vw, 84px);
+  block-size: clamp(56px, 11.5vw, 80px);
   padding: 0; /* Eliminamos el padding */
   border-radius: var(--r-sm);
   display:flex; 
@@ -574,10 +574,10 @@ $accesos = ugel_get_accesos(8);
 }
 
 .ax-media img{
-  width: auto; /* Ancho automático para mantener proporciones */
-  height: 100%; /* Ocupa toda la ALTURA del contenedor */
-  max-width: none; /* Eliminamos restricción de ancho máximo */
-  max-height: 100%; /* Mantenemos restricción de altura */
+  width: 100%; /* Llenamos todo el marco */
+  height: 100%; /* Respetamos la altura disponible */
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain; /* Mantenemos la imagen completa sin recortar */
   object-position: center;
   image-rendering: auto; 
@@ -653,10 +653,10 @@ $accesos = ugel_get_accesos(8);
     padding: var(--sp-3);
     gap: var(--sp-2);
   }
-  
+
   .ax-media{
-    block-size: 56px;
-    padding: 10px;
+    block-size: 52px;
+    padding: 8px;
   }
   
   .ax-header__inner{
@@ -680,83 +680,154 @@ $accesos = ugel_get_accesos(8);
 
 <script>
 (function(){
-  const carousel = document.querySelector('.ax-carousel');
-  if(!carousel) return;
+  const carousels = document.querySelectorAll('.ax-carousel');
+  if (!carousels.length) return;
 
-  const rail  = carousel.querySelector('.ax-rail');
-  const prev  = carousel.querySelector('.ax-nav.prev');
-  const next  = carousel.querySelector('.ax-nav.next');
-  const pagination = carousel.querySelector('.ax-pagination');
-  const cards = Array.from(rail.querySelectorAll('.ax-card'));
-  const imgs  = Array.from(rail.querySelectorAll('.ax-media img'));
+  carousels.forEach((carousel) => {
+    const rail  = carousel.querySelector('.ax-rail');
+    const prev  = carousel.querySelector('.ax-nav.prev');
+    const next  = carousel.querySelector('.ax-nav.next');
+    const pagination = carousel.querySelector('.ax-pagination');
+    const cards = Array.from(rail?.querySelectorAll('.ax-card') || []);
+    const imgs  = Array.from(rail?.querySelectorAll('.ax-media img') || []);
 
-  if (!rail || cards.length === 0) return;
+    if (!rail || !cards.length) return;
 
-  const interval = parseInt(carousel.dataset.interval || '2000', 10);
-  const isMobile = () => window.matchMedia('(max-width:1024px)').matches;
+    const interval = parseInt(carousel.dataset.interval || '2000', 10);
+    const mq = window.matchMedia('(max-width:1024px)');
 
-  let positions = [];
-  let timer = null;
-  let currentIdx = 0;
+    let positions = [];
+    let timer = null;
+    let currentIdx = 0;
 
-  function computePositions(){
-    positions = cards.map(el => Math.round(el.offsetLeft - rail.offsetLeft));
-    snapTo(currentIndex(), false);
-    updatePagination();
-  }
+    const isActive = () => mq.matches && rail.scrollWidth > (rail.clientWidth + 1);
 
-  function currentIndex(){
-    const x = rail.scrollLeft;
-    let best = 0, bestDelta = Infinity;
-    positions.forEach((p,i)=>{ const d = Math.abs(p - x); if(d < bestDelta){ bestDelta = d; best = i; } });
-    currentIdx = best;
-    return best;
-  }
+    function updateNavState(enabled){
+      [prev, next].forEach(btn => {
+        if (!btn) return;
+        const allow = !!enabled;
+        btn.disabled = !allow;
+        btn.setAttribute('aria-disabled', allow ? 'false' : 'true');
+      });
+    }
 
-  function snapTo(i, smooth=true){
-    if (!positions.length) return;
-    const clamped = ( (i % positions.length) + positions.length ) % positions.length;
-    rail.scrollTo({ left: positions[clamped], behavior: smooth ? 'smooth' : 'auto' });
-    currentIdx = clamped;
-    updatePagination();
-  }
+    function buildPositions(){
+      if (!isActive()) {
+        positions = [];
+        currentIdx = 0;
+        rail.scrollTo({ left: 0, behavior: 'auto' });
+        updatePagination();
+        updateNavState(false);
+        return;
+      }
 
-  function updatePagination(){
-    if (!pagination || !isMobile()) return;
-    pagination.innerHTML = '';
-    cards.forEach((_, i) => {
-      const dot = document.createElement('span');
-      dot.className = `ax-dot ${i === currentIdx ? 'active' : ''}`;
-      dot.addEventListener('click', () => snapTo(i));
-      pagination.appendChild(dot);
+      positions = cards.map(el => Math.round(el.offsetLeft - rail.offsetLeft));
+      if (!positions.length) {
+        updatePagination();
+        updateNavState(false);
+        return;
+      }
+
+      snapTo(currentIdx, false);
+      updatePagination();
+      updateNavState(positions.length > 1);
+    }
+
+    function snapTo(i, smooth = true){
+      if (!positions.length) return;
+      const length = positions.length;
+      const clamped = ((i % length) + length) % length;
+      rail.scrollTo({ left: positions[clamped], behavior: smooth ? 'smooth' : 'auto' });
+      currentIdx = clamped;
+      updatePagination();
+    }
+
+    function updatePagination(){
+      if (!pagination) return;
+      pagination.innerHTML = '';
+      if (!isActive() || !positions.length) return;
+      positions.forEach((_, i) => {
+        const dot = document.createElement('span');
+        dot.className = `ax-dot ${i === currentIdx ? 'active' : ''}`;
+        dot.addEventListener('click', () => {
+          stop();
+          snapTo(i);
+          start();
+        });
+        pagination.appendChild(dot);
+      });
+    }
+
+    function nextSlide(){
+      if (!positions.length) return;
+      snapTo(currentIdx + 1);
+    }
+
+    function prevSlide(){
+      if (!positions.length) return;
+      snapTo(currentIdx - 1);
+    }
+
+    function start(){
+      stop();
+      if (isActive() && positions.length > 1) {
+        timer = setInterval(() => {
+          if (isActive()) {
+            nextSlide();
+          }
+        }, interval);
+      }
+    }
+
+    function stop(){
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    prev?.addEventListener('click', () => { stop(); prevSlide(); start(); });
+    next?.addEventListener('click', () => { stop(); nextSlide(); start(); });
+
+    carousel.addEventListener('keydown', (e) => {
+      if (!isActive()) return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); stop(); prevSlide(); start(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); stop(); nextSlide(); start(); }
     });
-  }
 
-  function nextSlide(){ if(!isMobile()) return; snapTo(currentIdx + 1); }
-  function prevSlide(){ if(!isMobile()) return; snapTo(currentIdx - 1); }
+    rail.addEventListener('touchstart', stop, { passive: true });
+    rail.addEventListener('touchend', () => setTimeout(start, 400), { passive: true });
+    rail.addEventListener('mouseenter', stop);
+    rail.addEventListener('mouseleave', start);
 
-  function start(){ if(timer) return; timer = setInterval(()=>{ if(isMobile()) nextSlide(); }, interval); }
-  function stop(){ if(timer){ clearInterval(timer); timer = null; } }
+    const recompute = () => {
+      buildPositions();
+      start();
+    };
 
-  prev?.addEventListener('click', ()=>{ stop(); prevSlide(); start(); });
-  next?.addEventListener('click', ()=>{ stop(); nextSlide(); start(); });
+    window.addEventListener('resize', recompute);
+    if (mq.addEventListener) {
+      mq.addEventListener('change', recompute);
+    } else if (mq.addListener) {
+      mq.addListener(recompute);
+    }
 
-  carousel.addEventListener('keydown', (e)=>{
-    if(!isMobile()) return;
-    if(e.key === 'ArrowLeft'){ e.preventDefault(); stop(); prevSlide(); start(); }
-    if(e.key === 'ArrowRight'){ e.preventDefault(); stop(); nextSlide(); start(); }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', recompute, { once: true });
+    } else {
+      requestAnimationFrame(recompute);
+    }
+
+    window.addEventListener('load', recompute);
+    imgs.forEach(img => {
+      if (!img.complete) {
+        img.addEventListener('load', recompute, { once: true });
+      }
+    });
+
+    // Primera ejecución
+    buildPositions();
+    start();
   });
-
-  rail.addEventListener('touchstart', stop, {passive:true});
-  rail.addEventListener('touchend',   ()=> setTimeout(start, 400), {passive:true});
-  rail.addEventListener('mouseenter', stop);
-  rail.addEventListener('mouseleave', start);
-
-  window.addEventListener('resize', computePositions);
-  window.addEventListener('load', computePositions);
-  document.addEventListener('DOMContentLoaded', computePositions);
-  imgs.forEach(img=>{ img.complete ? computePositions() : img.addEventListener('load', computePositions, {once:true}); });
-
-  start();
 })();
 </script>
