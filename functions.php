@@ -2463,130 +2463,25 @@ if (!function_exists('ugel_has_seo_plugin')) {
      * Detecta plugins SEO comunes para evitar duplicar etiquetas.
      */
     function ugel_has_seo_plugin() {
-        return defined('WPSEO_VERSION')
-            || defined('RANK_MATH_VERSION')
-            || defined('SEOPRESS_VERSION')
-            || defined('AIOSEO_VERSION')
-            || class_exists('The_SEO_Framework\Load');
+        return defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION') || defined('SEOPRESS_VERSION');
     }
 }
 
-if (!function_exists('ugel_seo_bootstrap')) {
-    function ugel_seo_bootstrap() {
-        add_filter('language_attributes', 'ugel_language_attributes', 10, 2);
-        add_filter('pre_get_document_title', 'ugel_filter_document_title');
-        add_filter('document_title_separator', 'ugel_document_title_separator');
-        add_filter('wp_title', 'ugel_legacy_wp_title', 10, 3);
-
-        if (ugel_has_seo_plugin()) {
-            return;
-        }
-
-        add_action('wp_head', 'ugel_meta_robots', 2);
-        add_action('wp_head', 'ugel_meta_description', 4);
-        add_action('wp_head', 'ugel_canonical_link', 5);
-        add_action('wp_head', 'ugel_hreflang_links', 5);
-        add_action('wp_head', 'ugel_open_graph_tags', 6);
-        add_action('wp_head', 'ugel_structured_data', 7);
-    }
-    add_action('after_setup_theme', 'ugel_seo_bootstrap');
-}
-
-// Canonical
-add_action('wp_head', function(){
-    if (is_admin() || ugel_has_seo_plugin()) return;
-
-    $desc = '';
-    if (is_singular()) {
-        global $post;
-        if ($post) {
-            $desc = has_excerpt($post) ? $post->post_excerpt : wp_strip_all_tags($post->post_content);
-        }
-    } elseif (is_category()) {
-        $desc = term_description();
-    } elseif (is_post_type_archive()) {
-        $obj = get_queried_object();
-        if ($obj && !empty($obj->description)) {
-            $desc = $obj->description;
-        }
-    } else {
-        $desc = get_bloginfo('description');
-    }
-
-    if ($desc) {
-        $desc = preg_replace('/\s+/', ' ', wp_strip_all_tags($desc));
-        $desc = trim(wp_trim_words($desc, 36, '…'));
-        if ($desc) {
-            echo '<meta name="description" content="' . esc_attr($desc) . '">' . "\n";
-        }
-    }
-}, 4);
-
-add_action('wp_head', function(){
-    if (is_admin() || ugel_has_seo_plugin()) return;
-    echo '<link rel="canonical" href="'.esc_url((is_singular() ? get_permalink() : home_url(add_query_arg(array(), $GLOBALS['wp']->request)))) . '/">'. "\n";
-}, 5);
-
-        if ('html' === $doctype) {
-            $output = sprintf('lang="%s" dir="%s"', esc_attr($lang), esc_attr($dir));
-        } else {
-            $output = esc_attr($lang);
-        }
-
-        return $output;
-    }
-}
-
-if (!function_exists('ugel_document_title_separator')) {
-    function ugel_document_title_separator($sep) {
-        return '|';
-    }
-}
-
-if (!function_exists('ugel_filter_document_title')) {
-    function ugel_filter_document_title($title) {
-        $site_name = get_bloginfo('name');
-        $tagline   = get_bloginfo('description');
-
-        if (is_front_page() && !is_paged()) {
-            return $tagline ? sprintf('%s %s %s', $site_name, '|', $tagline) : $site_name;
-        }
-
+if (!function_exists('ugel_get_meta_description')) {
+    function ugel_get_meta_description() {
+        $desc = '';
+        
         if (is_singular()) {
-            $context = single_post_title('', false);
-        } elseif (function_exists('get_the_archive_title')) {
-            $context = trim(wp_strip_all_tags(get_the_archive_title('', false)));
-        } else {
-            $context = $title;
-        }
-
-    if (is_front_page() || is_home()) {
-        $schemas[] = array(
-            '@context' => 'https://schema.org',
-            '@type'    => 'WebSite',
-            'url'      => home_url('/'),
-            'name'     => get_bloginfo('name'),
-            'description' => get_bloginfo('description'),
-            'potentialAction' => array(
-                '@type'       => 'SearchAction',
-                'target'      => home_url('/?s={search_term_string}'),
-                'query-input' => 'required name=search_term_string'
-            )
-        );
-    }
-
-    if (!is_front_page()) {
-        $items = array(
-            array('@type'=>'ListItem','position'=>1,'name'=>__('Inicio','ugel-theme'),'item'=>home_url('/'))
-        );
-        if (is_singular()) {
-            $post = get_queried_object();
+            global $post;
             if ($post) {
-                if (has_excerpt($post)) {
-                    $desc = $post->post_excerpt;
-                } else {
-                    $desc = wp_strip_all_tags($post->post_content);
-                }
+                $desc = has_excerpt($post) ? $post->post_excerpt : wp_strip_all_tags($post->post_content);
+            }
+        } elseif (is_category()) {
+            $desc = term_description();
+        } elseif (is_post_type_archive()) {
+            $obj = get_queried_object();
+            if ($obj && !empty($obj->description)) {
+                $desc = $obj->description;
             }
         } elseif (is_home() && !is_front_page()) {
             $page_for_posts = get_option('page_for_posts');
@@ -2596,15 +2491,6 @@ if (!function_exists('ugel_filter_document_title')) {
                     $desc = wp_strip_all_tags(get_post_field('post_content', $page_for_posts));
                 }
             }
-        } elseif (is_category() || is_tag() || is_tax()) {
-            $desc = term_description();
-        } elseif (is_post_type_archive()) {
-            $object = get_queried_object();
-            if ($object && !empty($object->description)) {
-                $desc = $object->description;
-            }
-        } elseif (is_search()) {
-            $desc = sprintf(__('Resultados para "%s" en UGEL El Collao.', 'ugel-theme'), get_search_query());
         } else {
             $desc = get_bloginfo('description');
         }
@@ -2619,6 +2505,22 @@ if (!function_exists('ugel_filter_document_title')) {
 
         return $desc;
     }
+}
+
+if (!function_exists('ugel_seo_bootstrap')) {
+    function ugel_seo_bootstrap() {
+        if (ugel_has_seo_plugin()) {
+            return;
+        }
+
+        add_action('wp_head', 'ugel_meta_robots', 2);
+        add_action('wp_head', 'ugel_meta_description', 4);
+        add_action('wp_head', 'ugel_canonical_link', 5);
+        add_action('wp_head', 'ugel_hreflang_links', 5);
+        add_action('wp_head', 'ugel_open_graph_tags', 6);
+        add_action('wp_head', 'ugel_structured_data', 7);
+    }
+    add_action('after_setup_theme', 'ugel_seo_bootstrap');
 }
 
 if (!function_exists('ugel_meta_description')) {
@@ -3050,87 +2952,91 @@ if (!function_exists('ugel_structured_data')) {
         echo '<script type="application/ld+json">' . wp_json_encode($schemas, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
     }
 }
-/* ================== Vistas por entrada — UGEL ================== */
+
+/* ===========================================================
+ * Vistas por entrada — UGEL
+ * =========================================================== */
 if (!function_exists('ugel_is_bot')) {
-  function ugel_is_bot() {
-    if (php_sapi_name() === 'cli') return true;
-    $ua = isset($_SERVER['HTTP_USER_AGENT']) ? strtolower($_SERVER['HTTP_USER_AGENT']) : '';
-    if ($ua === '') return true;
-    $bots = ['bot','crawl','slurp','spider','mediapartners','facebookexternalhit','preview','http','monitor'];
-    foreach ($bots as $b) { if (strpos($ua, $b) !== false) return true; }
-    return false;
-  }
+    function ugel_is_bot() {
+        if (php_sapi_name() === 'cli') return true;
+        $ua = isset($_SERVER['HTTP_USER_AGENT']) ? strtolower($_SERVER['HTTP_USER_AGENT']) : '';
+        if ($ua === '') return true;
+        $bots = array('bot','crawl','slurp','spider','mediapartners','facebookexternalhit','preview','http','monitor');
+        foreach ($bots as $b) { 
+            if (strpos($ua, $b) !== false) return true; 
+        }
+        return false;
+    }
 }
 
 if (!function_exists('ugel_get_post_views')) {
-  function ugel_get_post_views($post_id = null) {
-    $post_id = $post_id ? intval($post_id) : get_the_ID();
-    return (int) get_post_meta($post_id, '_ugel_views', true);
-  }
+    function ugel_get_post_views($post_id = null) {
+        $post_id = $post_id ? intval($post_id) : get_the_ID();
+        return (int) get_post_meta($post_id, '_ugel_views', true);
+    }
 }
 
 if (!function_exists('ugel_set_post_views')) {
-  function ugel_set_post_views($post_id) {
-    $current = ugel_get_post_views($post_id);
-    update_post_meta($post_id, '_ugel_views', $current + 1);
-  }
+    function ugel_set_post_views($post_id) {
+        $current = ugel_get_post_views($post_id);
+        update_post_meta($post_id, '_ugel_views', $current + 1);
+    }
 }
 
 if (!function_exists('ugel_maybe_count_view')) {
-  function ugel_maybe_count_view() {
-    // Ajusta los tipos donde quieres contar
-    if (!is_singular(['post','page','convocatorias','comunicados'])) return;
-    if (is_user_logged_in() && current_user_can('manage_options')) return; // opcional: no contar admin
-    if (is_preview() || is_feed() || ugel_is_bot()) return;
+    function ugel_maybe_count_view() {
+        // Ajusta los tipos donde quieres contar
+        if (!is_singular(array('post','page','convocatorias','comunicados'))) return;
+        if (is_user_logged_in() && current_user_can('manage_options')) return; // opcional: no contar admin
+        if (is_preview() || is_feed() || ugel_is_bot()) return;
 
-    $post_id = get_queried_object_id();
-    if (!$post_id) return;
+        $post_id = get_queried_object_id();
+        if (!$post_id) return;
 
-    // Evitar múltiples conteos por usuario (cookie 6h)
-    $cookie_name = 'ugel_view_' . $post_id;
-    if (!isset($_COOKIE[$cookie_name])) {
-      ugel_set_post_views($post_id);
-      // Cookie segura
-      setcookie(
-        $cookie_name, '1',
-        time() + 6 * HOUR_IN_SECONDS,
-        COOKIEPATH ?: '/',
-        COOKIE_DOMAIN,
-        is_ssl(),
-        true
-      );
-      // Para que esté disponible inmediatamente en el request actual
-      $_COOKIE[$cookie_name] = '1';
+        // Evitar múltiples conteos por usuario (cookie 6h)
+        $cookie_name = 'ugel_view_' . $post_id;
+        if (!isset($_COOKIE[$cookie_name])) {
+            ugel_set_post_views($post_id);
+            // Cookie segura
+            setcookie(
+                $cookie_name, '1',
+                time() + 6 * HOUR_IN_SECONDS,
+                COOKIEPATH ?: '/',
+                COOKIE_DOMAIN,
+                is_ssl(),
+                true
+            );
+            // Para que esté disponible inmediatamente en el request actual
+            $_COOKIE[$cookie_name] = '1';
+        }
     }
-  }
-  add_action('template_redirect', 'ugel_maybe_count_view');
+    add_action('template_redirect', 'ugel_maybe_count_view');
 }
 
 if (!function_exists('ugel_the_views_badge')) {
-  function ugel_the_views_badge($post_id = null, $label = 'vistas') {
-    $post_id = $post_id ? intval($post_id) : get_the_ID();
-    if (!$post_id) return;
+    function ugel_the_views_badge($post_id = null, $label = 'vistas') {
+        $post_id = $post_id ? intval($post_id) : get_the_ID();
+        if (!$post_id) return;
 
-    $views = ugel_get_post_views($post_id);
-    $views_fmt = number_format_i18n($views);
+        $views = ugel_get_post_views($post_id);
+        $views_fmt = number_format_i18n($views);
 
-    // Icono inline (coincide con tu .foot-views)
-    $svg = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:6px">
-              <path fill="currentColor" d="M12 5c5.5 0 9.5 4.5 10.7 6-.8 1-5 6-10.7 6S2.5 12 1.3 11C2.5 9.5 6.5 5 12 5Zm0 2C7.7 7 4.4 10.3 3.3 11 4.5 11.8 7.8 15 12 15s7.5-3.2 8.7-4C19.5 10.3 16.3 7 12 7Zm0 2.5A3.5 3.5 0 1 1 8.5 13 3.5 3.5 0 0 1 12 9.5Zm0 2a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 12 11.5Z"/>
-            </svg>';
+        // Icono inline (coincide con tu .foot-views)
+        $svg = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:6px">
+                  <path fill="currentColor" d="M12 5c5.5 0 9.5 4.5 10.7 6-.8 1-5 6-10.7 6S2.5 12 1.3 11C2.5 9.5 6.5 5 12 5Zm0 2C7.7 7 4.4 10.3 3.3 11 4.5 11.8 7.8 15 12 15s7.5-3.2 8.7-4C19.5 10.3 16.3 7 12 7Zm0 2.5A3.5 3.5 0 1 1 8.5 13 3.5 3.5 0 0 1 12 9.5Zm0 2a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 12 11.5Z"/>
+                </svg>';
 
-    echo '<span class="foot-views" title="' . esc_attr($views_fmt . ' ' . $label) . '">' . $svg . esc_html($views_fmt . ' ' . $label) . '</span>';
-  }
+        echo '<span class="foot-views" title="' . esc_attr($views_fmt . ' ' . $label) . '">' . $svg . esc_html($views_fmt . ' ' . $label) . '</span>';
+    }
 }
 
 /* Shortcode útil para probar en cualquier parte: [ugel_views] */
 add_shortcode('ugel_views', function($atts){
-  $atts = shortcode_atts(['label'=>'vistas','id'=>0], $atts, 'ugel_views');
-  $id = $atts['id'] ? intval($atts['id']) : get_the_ID();
-  ob_start();
-  ugel_the_views_badge($id, $atts['label']);
-  return ob_get_clean();
+    $atts = shortcode_atts(array('label'=>'vistas','id'=>0), $atts, 'ugel_views');
+    $id = $atts['id'] ? intval($atts['id']) : get_the_ID();
+    ob_start();
+    ugel_the_views_badge($id, $atts['label']);
+    return ob_get_clean();
 });
-
 
 ?>

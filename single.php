@@ -1294,34 +1294,6 @@ get_header(); ?>
   }
 }
 
-/* ========== DARK MODE (OPCIONAL) ========== */
-@media (prefers-color-scheme: dark) {
-  .single-board {
-    background: linear-gradient(135deg, 
-      #1a1f3a 0%,
-      #16213e 40%,
-      #0f1a2e 100%
-    );
-  }
-
-  .title-text {
-    background: linear-gradient(135deg, #B2FFFF 0%, #8297FE 100%);
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .single-meta,
-  .badge,
-  .meta-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(178, 255, 255, 0.15);
-    color: #B2FFFF;
-  }
-
-  .single-content {
-    color: #cbd5e1;
-  }
-}
 </style>
 
 <script>
