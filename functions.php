@@ -19,6 +19,7 @@ class UGELTheme {
         add_action('widgets_init', array($this, 'register_sidebars'));
         add_action('customize_register', array($this, 'customize_register'));
         add_filter('body_class', array($this, 'custom_body_classes'));
+        add_action('init', array($this, 'register_performance_hints'));
     }
 
     public function theme_setup() {
@@ -52,7 +53,10 @@ class UGELTheme {
 
     public function enqueue_scripts() {
         wp_enqueue_style('ugel-main-style', get_template_directory_uri() . '/assets/css/main-styles.css', array(), '1.0.0');
-        wp_enqueue_script('ugel-main-script', get_template_directory_uri() . '/assets/js/main.js', array('jquery'), '1.0.0', true);
+        wp_enqueue_script('ugel-main-script', get_template_directory_uri() . '/assets/js/main.js', array(), '1.0.0', true);
+        if (function_exists('wp_script_add_data')) {
+            wp_script_add_data('ugel-main-script', 'strategy', 'defer');
+        }
 
         wp_localize_script('ugel-main-script', 'ugel_ajax', array(
             'ajax_url'   => admin_url('admin-ajax.php'),
@@ -70,6 +74,41 @@ class UGELTheme {
             wp_enqueue_script('datatables-core', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array('jquery'), '1.13.6', true);
             wp_enqueue_script('datatables-responsive', 'https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js', array('datatables-core'), '2.5.0', true);
         }
+    }
+
+    public function register_performance_hints() {
+        if (is_admin()) {
+            return;
+        }
+        add_filter('wp_resource_hints', array($this, 'resource_hints'), 10, 2);
+    }
+
+    public function resource_hints($urls, $relation_type) {
+        if ('preconnect' !== $relation_type) {
+            return $urls;
+        }
+
+        $existing = array();
+        foreach ($urls as $entry) {
+            if (is_array($entry) && isset($entry['href'])) {
+                $existing[] = $entry['href'];
+            } elseif (is_string($entry)) {
+                $existing[] = $entry;
+            }
+        }
+
+        $font_hosts = array(
+            array('href' => 'https://fonts.googleapis.com'),
+            array('href' => 'https://fonts.gstatic.com', 'crossorigin' => 'anonymous'),
+        );
+
+        foreach ($font_hosts as $hint) {
+            if (!in_array($hint['href'], $existing, true)) {
+                $urls[] = $hint;
+            }
+        }
+
+        return $urls;
     }
 
     public function register_post_types() {
@@ -500,6 +539,10 @@ new UGELTheme();
  * - Usa cookie de enfriamiento para evitar múltiples incrementos en minutos seguidos
  * ========================= */
 function ugel_count_site_view() {
+    if (is_admin() || (function_exists('wp_doing_ajax') && wp_doing_ajax()) || defined('REST_REQUEST')) {
+        return;
+    }
+
     if (is_user_logged_in() && current_user_can('manage_options')) {
         // Evitar contaminar el contador con navegaciones de administradores
         return;
@@ -520,8 +563,11 @@ function ugel_count_site_view() {
     $total++;
     update_option('ugel_site_views_total', $total, false);
 
-    // Refrescar cookie de enfriamiento
-    setcookie($cookie_name, (string)$now, $now + $cooldown, COOKIEPATH ?: '/', COOKIE_DOMAIN, is_ssl(), true);
+    if (!headers_sent()) {
+        // Refrescar cookie de enfriamiento
+        setcookie($cookie_name, (string)$now, $now + $cooldown, COOKIEPATH ?: '/', COOKIE_DOMAIN, is_ssl(), true);
+        $_COOKIE[$cookie_name] = (string)$now;
+    }
 }
 add_action('template_redirect', 'ugel_count_site_view');
 
@@ -532,11 +578,26 @@ function ugel_get_site_views() {
 
 function ugel_the_site_views($label = true) {
     $n = number_format_i18n(ugel_get_site_views());
-    if ($label) {
-        echo '<span class="site-views" aria-label="Visitas al sitio">Visitas: ' . esc_html($n) . '</span>';
+
+    if ($label === true) {
+        $text = __('Visitas', 'ugel-theme');
+    } elseif ($label === false || $label === null) {
+        $text = '';
     } else {
-        echo esc_html($n);
+        $text = sanitize_text_field($label);
     }
+
+    $aria_label = $text ? sprintf(__('%1$s: %2$s', 'ugel-theme'), $text, $n) : sprintf(__('Visitas: %s', 'ugel-theme'), $n);
+
+    echo '<span class="site-views" aria-label="' . esc_attr($aria_label) . '">';
+    echo '<svg class="site-views__icon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">';
+    echo '<path fill="currentColor" d="M12 5c5.36 0 9.32 4.27 10.55 5.87a1.5 1.5 0 0 1 0 1.78C21.32 14.23 17.36 18.5 12 18.5S2.68 14.23 1.45 12.65a1.5 1.5 0 0 1 0-1.78C2.68 9.27 6.64 5 12 5Zm0 2C7.86 7 4.66 10.37 3.54 11.76 4.66 13.14 7.86 16.5 12 16.5s7.34-3.36 8.46-4.74C19.34 10.37 16.14 7 12 7Zm0 2.5a3.5 3.5 0 1 1-3.5 3.5A3.5 3.5 0 0 1 12 9.5Zm0 2a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 12 11.5Z"/>';
+    echo '</svg>';
+    if ($text !== '') {
+        echo '<span class="site-views__label">' . esc_html($text) . ':</span>';
+    }
+    echo '<span class="site-views__count">' . esc_html($n) . '</span>';
+    echo '</span>';
 }
 
 /* =========================
@@ -551,17 +612,66 @@ add_action('init', function () {
 /* =========================
  * Helpers de consultas
  * ========================= */
+function ugel_cached_posts($key, $args, $ttl = null) {
+    $cache_key = 'ugel_' . $key;
+    $cached = get_transient($cache_key);
+    if ($cached !== false) {
+        return $cached;
+    }
+
+    $defaults = array(
+        'no_found_rows'          => true,
+        'cache_results'          => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
+    );
+
+    $query_args = wp_parse_args($args, $defaults);
+    $posts = get_posts($query_args);
+    $ttl = $ttl ?: (5 * MINUTE_IN_SECONDS);
+    set_transient($cache_key, $posts, $ttl);
+
+    return $posts;
+}
+
+function ugel_flush_theme_transients($unused = null) {
+    global $wpdb;
+    if (!isset($wpdb->options)) {
+        return;
+    }
+    $pattern = $wpdb->esc_like('_transient_ugel_') . '%';
+    $timeout_pattern = $wpdb->esc_like('_transient_timeout_ugel_') . '%';
+    $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $pattern));
+    $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $timeout_pattern));
+}
+
+add_action('save_post', function($post_id) {
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (wp_is_post_revision($post_id)) return;
+
+    $type = get_post_type($post_id);
+    if (!$type) return;
+
+    $targets = array('slider','tarjetas','enlaces','convocatorias','comunicados','post','page');
+    if (in_array($type, $targets, true)) {
+        ugel_flush_theme_transients();
+    }
+}, 20);
+
+add_action('deleted_post', 'ugel_flush_theme_transients');
+add_action('trash_post', 'ugel_flush_theme_transients');
+
 function get_hero_slides() {
-    return get_posts(array(
+    return ugel_cached_posts('hero_slides', array(
         'post_type'      => 'slider',
         'posts_per_page' => -1,
         'orderby'        => 'menu_order',
         'order'          => 'ASC',
         'post_status'    => 'publish'
-    ));
+    ), 30 * MINUTE_IN_SECONDS);
 }
 function get_convocatorias($limit = 3, $estado = null) {
-    return get_posts(array(
+    return ugel_cached_posts('convocatorias_' . intval($limit), array(
         'post_type'      => 'convocatorias',
         'posts_per_page' => intval($limit),
         'orderby'        => 'date',
@@ -638,7 +748,7 @@ function ugel_format_convocatoria_date($date_string) {
     return esc_html( date_i18n('d/m/Y', $timestamp) );
 }
 function get_comunicados($limit = 3) {
-    return get_posts(array(
+    return ugel_cached_posts('comunicados_' . intval($limit), array(
         'post_type'      => 'comunicados',
         'posts_per_page' => intval($limit),
         'orderby'        => 'date',
@@ -647,7 +757,7 @@ function get_comunicados($limit = 3) {
     ));
 }
 function get_destacados($limit = 4) {
-    return get_posts(array(
+    return ugel_cached_posts('destacados_' . intval($limit), array(
         'post_type'      => array('post', 'convocatorias', 'comunicados'),
         'posts_per_page' => intval($limit),
         'orderby'        => 'date',
@@ -657,22 +767,22 @@ function get_destacados($limit = 4) {
     ));
 }
 function get_enlaces_interes() {
-    return get_posts(array(
+    return ugel_cached_posts('enlaces_interes', array(
         'post_type'      => 'enlaces',
         'posts_per_page' => -1,
         'orderby'        => 'menu_order',
         'order'          => 'ASC',
         'post_status'    => 'publish'
-    ));
+    ), 60 * MINUTE_IN_SECONDS);
 }
 function get_feature_cards($limit = 5) {
-  return get_posts(array(
-    'post_type'      => 'tarjetas',
-    'posts_per_page' => intval($limit),
-    'orderby'        => 'menu_order date',
-    'order'          => 'ASC',
-    'post_status'    => 'publish'
-  ));
+    return ugel_cached_posts('feature_cards_' . intval($limit), array(
+        'post_type'      => 'tarjetas',
+        'posts_per_page' => intval($limit),
+        'orderby'        => 'menu_order date',
+        'order'          => 'ASC',
+        'post_status'    => 'publish'
+    ));
 }
 
 /* =========================
@@ -2356,6 +2466,35 @@ function ugel_has_seo_plugin() {
 // Canonical
 add_action('wp_head', function(){
     if (is_admin() || ugel_has_seo_plugin()) return;
+
+    $desc = '';
+    if (is_singular()) {
+        global $post;
+        if ($post) {
+            $desc = has_excerpt($post) ? $post->post_excerpt : wp_strip_all_tags($post->post_content);
+        }
+    } elseif (is_category()) {
+        $desc = term_description();
+    } elseif (is_post_type_archive()) {
+        $obj = get_queried_object();
+        if ($obj && !empty($obj->description)) {
+            $desc = $obj->description;
+        }
+    } else {
+        $desc = get_bloginfo('description');
+    }
+
+    if ($desc) {
+        $desc = preg_replace('/\s+/', ' ', wp_strip_all_tags($desc));
+        $desc = trim(wp_trim_words($desc, 36, '…'));
+        if ($desc) {
+            echo '<meta name="description" content="' . esc_attr($desc) . '">' . "\n";
+        }
+    }
+}, 4);
+
+add_action('wp_head', function(){
+    if (is_admin() || ugel_has_seo_plugin()) return;
     echo '<link rel="canonical" href="'.esc_url((is_singular() ? get_permalink() : home_url(add_query_arg(array(), $GLOBALS['wp']->request)))) . '/">'. "\n";
 }, 5);
 
@@ -2417,6 +2556,21 @@ add_action('wp_head', function(){
     );
 
     $schemas = array($org);
+
+    if (is_front_page() || is_home()) {
+        $schemas[] = array(
+            '@context' => 'https://schema.org',
+            '@type'    => 'WebSite',
+            'url'      => home_url('/'),
+            'name'     => get_bloginfo('name'),
+            'description' => get_bloginfo('description'),
+            'potentialAction' => array(
+                '@type'       => 'SearchAction',
+                'target'      => home_url('/?s={search_term_string}'),
+                'query-input' => 'required name=search_term_string'
+            )
+        );
+    }
 
     if (!is_front_page()) {
         $items = array(

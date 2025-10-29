@@ -46,6 +46,9 @@
   <div class="foot-bottom">
     <div>
       © <span id="y"><?php echo date('Y'); ?></span> UGEL El Collao. Todos los derechos reservados.
+      <?php if (function_exists('ugel_the_site_views')) : ?>
+        &nbsp;•&nbsp;<?php ugel_the_site_views(__('Visitas totales', 'ugel-theme')); ?>
+      <?php endif; ?>
       <?php if (function_exists('ugel_the_views_badge') && is_singular()) : ?>
         &nbsp;•&nbsp;<?php ugel_the_views_badge(get_queried_object_id()); ?>
       <?php endif; ?>

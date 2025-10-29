@@ -15,18 +15,21 @@
     setupMenuSplitting();
     setupMobileMenu();
     setupStickySubheader();
-    
+
     setupInterestLinks();
-    setupSiteViewsBadge();
-    // Ensure it renders even if footer mounts late
-    window.addEventListener('load', setupSiteViewsBadge);
-    setTimeout(setupSiteViewsBadge, 1200);
-    setTimeout(setupSiteViewsBadge, 3000);
-    setupForms();
-    setupLazyLoading();
-    setupSmoothScrolling();
-    setupAccessibility();
-    setupSearchEnhancements();
+    ensureSiteViewsBadge();
+
+    const queueIdle = window.requestIdleCallback
+      ? (cb) => window.requestIdleCallback(cb, { timeout: 600 })
+      : (cb) => setTimeout(() => cb({ didTimeout: true, timeRemaining: () => 0 }), 160);
+
+    queueIdle(() => {
+      setupForms();
+      setupLazyLoading();
+      setupSmoothScrolling();
+      setupAccessibility();
+      setupSearchEnhancements();
+    });
   }
 
   /* Menu label typography adjustments */
@@ -500,27 +503,54 @@ function setupMobileMenu() {
 
     // Drag / swipe
     let startX = 0, dx = 0, dragging = false, baseX = 0;
+    let activePointerId = null;
     const threshold = 60;
 
     function onDown(e) {
+      if (dragging) return;
+      if (e.type === 'pointerdown' && e.pointerType === 'mouse' && e.button !== 0) {
+        return;
+      }
       dragging = true;
       ribbon.classList.add('is-dragging');
       track.style.transition = 'none';
       paused = true;
+      if (e.type === 'pointerdown') {
+        activePointerId = e.pointerId;
+        if (ribbon.setPointerCapture) {
+          ribbon.setPointerCapture(activePointerId);
+        }
+      }
+      if (e.cancelable) {
+        e.preventDefault();
+      }
       const point = 'touches' in e ? e.touches[0] : e;
       startX = point.clientX;
       baseX = -current * pageWidth;
     }
+
     function onMove(e) {
       if (!dragging) return;
+      if (e.type === 'pointermove' && activePointerId !== null && e.pointerId !== activePointerId) {
+        return;
+      }
       const point = 'touches' in e ? e.touches[0] : e;
       dx = point.clientX - startX;
       track.style.transform = `translate3d(${baseX + dx}px,0,0)`;
     }
-    function onUp() {
+
+    function onUp(e) {
       if (!dragging) return;
       dragging = false;
       ribbon.classList.remove('is-dragging');
+      if ((e?.type === 'pointerup' || e?.type === 'pointercancel') && activePointerId !== null && ribbon.releasePointerCapture) {
+        try {
+          ribbon.releasePointerCapture(activePointerId);
+        } catch (err) {
+          // ignore release errors (pointer already released)
+        }
+      }
+      activePointerId = null;
       if (Math.abs(dx) > threshold) {
         dx < 0 ? next() : prev();
       } else {
@@ -532,12 +562,23 @@ function setupMobileMenu() {
       startAutoplay();
     }
 
-    ribbon.addEventListener('pointerdown', onDown);
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    ribbon.addEventListener('touchstart', onDown, { passive: true });
-    ribbon.addEventListener('touchmove', onMove, { passive: true });
-    ribbon.addEventListener('touchend', onUp, { passive: true });
+    ribbon.addEventListener('dragstart', (event) => { event.preventDefault(); });
+    if (window.PointerEvent) {
+      ribbon.addEventListener('pointerdown', onDown);
+      ribbon.addEventListener('pointermove', onMove);
+      ribbon.addEventListener('pointerup', onUp);
+      ribbon.addEventListener('pointercancel', onUp);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
+    } else {
+      ribbon.addEventListener('touchstart', onDown, { passive: true });
+      ribbon.addEventListener('touchmove', onMove, { passive: true });
+      ribbon.addEventListener('touchend', onUp, { passive: true });
+      ribbon.addEventListener('mousedown', onDown);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    }
 
     // Pause on hover/focus
     ribbon.addEventListener('mouseenter', () => { paused = true; });
@@ -646,20 +687,31 @@ function setupMobileMenu() {
   // Site-wide views badge injection (non-intrusive)
   function setupSiteViewsBadge() {
     try {
-      if (document.querySelector('.foot-bottom .site-views')) return;
+      if (document.querySelector('.foot-bottom .site-views')) return true;
       const n = (window.ugel_ajax && typeof window.ugel_ajax.site_views === 'number') ? window.ugel_ajax.site_views : null;
-      if (n == null) return;
+      if (typeof n !== 'number') return false;
       const slot = document.querySelector('.foot-bottom > div');
-      if (!slot) return;
-      const sep = document.createTextNode(' \u00B7 ');
+      if (!slot) return false;
+      const fragment = document.createDocumentFragment();
+      fragment.appendChild(document.createTextNode(' \u00B7 '));
       const span = document.createElement('span');
       span.className = 'site-views';
       span.setAttribute('aria-label', 'Visitas al sitio');
       span.textContent = `Visitas: ${new Intl.NumberFormat().format(n)}`;
-      // Insert just before any post-views badge if present
-      slot.appendChild(sep);
-      slot.appendChild(span);
-    } catch(_){}
+      fragment.appendChild(span);
+      slot.appendChild(fragment);
+      return true;
+    } catch(_) {
+      return false;
+    }
+  }
+
+  function ensureSiteViewsBadge() {
+    const attempts = [0, 600, 1800, 3600];
+    attempts.forEach(delay => {
+      setTimeout(() => { setupSiteViewsBadge(); }, delay);
+    });
+    window.addEventListener('load', () => { setupSiteViewsBadge(); }, { once: true });
   }
 
   /* Live search suggestions in desktop and mobile forms */
