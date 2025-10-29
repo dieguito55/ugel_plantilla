@@ -417,62 +417,55 @@ function setupMobileMenu() {
 
   /* Interest links: dots, drag/swipe, autoplay */
   function setupInterestLinks() {
-    const mediaBlocks = document.querySelectorAll('.interest-links__media');
-    if (!mediaBlocks.length) return;
+    const media = document.querySelector('.interest-links__media');
+    const ribbon = media?.querySelector('.logo-ribbon');
+    const track = ribbon?.querySelector('.logo-ribbon__track');
+    if (!media || !ribbon || !track) return;
 
-    mediaBlocks.forEach((media, index) => {
-      if (!media || media.dataset.enhanced === '1') return;
+    const items = Array.from(track.querySelectorAll('.logo-item'));
+    if (!items.length) return;
 
-      const ribbon = media.querySelector('.logo-ribbon');
-      const track = ribbon?.querySelector('.logo-ribbon__track');
-      if (!ribbon || !track) return;
+    // Ensure base styles hook
+    ribbon.dataset.enhanced = '1';
+    media.dataset.enhanced = '1';
 
-      const items = Array.from(track.querySelectorAll('.logo-item'));
-      if (!items.length) return;
+    const prevBtn = media.querySelector('.logo-ribbon__nav.is-prev');
+    const nextBtn = media.querySelector('.logo-ribbon__nav.is-next');
 
-      // Ensure base styles hook
-      ribbon.dataset.enhanced = '1';
-      media.dataset.enhanced = '1';
+    // Create dots container (once)
+    let dotsWrap = media.querySelector('#ilDots');
+    if (!dotsWrap) {
+      dotsWrap = document.createElement('div');
+      dotsWrap.id = 'ilDots';
+      dotsWrap.className = 'logo-ribbon__dots';
+      dotsWrap.setAttribute('role', 'tablist');
+      dotsWrap.setAttribute('aria-label', 'Paginación de accesos');
+      ribbon.insertAdjacentElement('afterend', dotsWrap);
+    }
 
-      const prevBtn = media.querySelector('.logo-ribbon__nav.is-prev');
-      const nextBtn = media.querySelector('.logo-ribbon__nav.is-next');
+    let current = 0;
+    let pages = 1;
+    let itemsPerPage = 1;
+    let viewportWidth = 0;
+    let pageWidth = 0;
+    let autoplayTimer = null;
+    let paused = false;
+    const delay = 6000;
 
-      // Create dots container (per instance)
-      let dotsWrap = media.querySelector('.logo-ribbon__dots');
-      if (!dotsWrap) {
-        dotsWrap = document.createElement('div');
-        dotsWrap.className = 'logo-ribbon__dots';
-        dotsWrap.setAttribute('role', 'tablist');
-        dotsWrap.setAttribute('aria-label', 'Paginación de accesos');
-        ribbon.insertAdjacentElement('afterend', dotsWrap);
-      } else {
-        dotsWrap.innerHTML = '';
-      }
-
-      let current = 0;
-      let pages = 1;
-      let itemsPerPage = 1;
-      let viewportWidth = 0;
-      let pageWidth = 0;
-      let autoplayTimer = null;
-      let paused = false;
-      const delay = 6000;
-
-      function calcLayout() {
-        viewportWidth = ribbon.clientWidth;
-        const firstItem = items[0];
-        const itemWidth = firstItem ? firstItem.getBoundingClientRect().width : Math.max(220, viewportWidth);
-        const style = window.getComputedStyle(track);
-        const gapRaw = parseFloat(style.columnGap || style.gap || 0);
-        itemsPerPage = Math.max(1, Math.floor(viewportWidth / Math.max(1, itemWidth)));
-        pages = Math.max(1, Math.ceil(items.length / itemsPerPage));
-        current = Math.min(current, pages - 1);
-        const pageSpan = (itemWidth * itemsPerPage) + (Math.max(itemsPerPage - 1, 0) * gapRaw);
-        pageWidth = Math.max(1, Math.min(pageSpan || viewportWidth, track.scrollWidth / pages || viewportWidth));
-        buildDots();
-        snapTo(current, false);
-        updateNavState();
-      }
+    function calcLayout() {
+      viewportWidth = ribbon.clientWidth;
+      const firstItem = items[0];
+      const itemWidth = firstItem ? firstItem.getBoundingClientRect().width : Math.max(220, viewportWidth);
+      const style = window.getComputedStyle(track);
+      const gapRaw = parseFloat(style.columnGap || style.gap || 0);
+      itemsPerPage = Math.max(1, Math.floor(viewportWidth / Math.max(1, itemWidth)));
+      pages = Math.max(1, Math.ceil(items.length / itemsPerPage));
+      const pageSpan = (itemWidth * itemsPerPage) + (Math.max(itemsPerPage - 1, 0) * gapRaw);
+      pageWidth = Math.max(1, Math.min(pageSpan || viewportWidth, track.scrollWidth / pages || viewportWidth));
+      buildDots();
+      snapTo(current, false);
+      updateNavState();
+    }
 
       function buildDots() {
         if (!dotsWrap) return;
@@ -521,23 +514,44 @@ function setupMobileMenu() {
         });
       }
 
-      function startAutoplay() {
-        stopAutoplay();
-        if (pages > 1) autoplayTimer = setInterval(() => { if (!paused) next(); }, delay);
-      }
-      function stopAutoplay() {
-        if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
-      }
+    function updateNavState() {
+      const disable = pages <= 1;
+      [prevBtn, nextBtn].forEach(btn => {
+        if (!btn) return;
+        btn.disabled = disable;
+        btn.setAttribute('aria-disabled', disable ? 'true' : 'false');
+      });
+    }
+
+    function startAutoplay() {
+      stopAutoplay();
+      if (pages > 1) autoplayTimer = setInterval(() => { if (!paused) next(); }, delay);
+    }
+    function stopAutoplay() {
+      if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
+    }
 
       // Drag / swipe
       let startX = 0, dx = 0, dragging = false, baseX = 0;
       let activePointerId = null;
       const threshold = 60;
 
-      function onDown(e) {
-        if (dragging) return;
-        if (e.type === 'pointerdown' && e.pointerType === 'mouse' && e.button !== 0) {
-          return;
+    function onDown(e) {
+      if (dragging) return;
+      if (e.type === 'pointerdown' && e.pointerType === 'mouse' && e.button !== 0) {
+        return;
+      }
+      if (e.target && e.target.closest('.logo-ribbon__nav')) {
+        return;
+      }
+      dragging = true;
+      ribbon.classList.add('is-dragging');
+      track.style.transition = 'none';
+      paused = true;
+      if (e.type === 'pointerdown') {
+        activePointerId = e.pointerId;
+        if (ribbon.setPointerCapture && e.pointerType !== 'mouse') {
+          ribbon.setPointerCapture(activePointerId);
         }
         if (e.target && e.target.closest('.logo-ribbon__nav')) {
           return;
@@ -560,6 +574,14 @@ function setupMobileMenu() {
         startX = point.clientX;
         baseX = -current * pageWidth;
       }
+      const isMouse = e.type === 'pointerdown' && e.pointerType === 'mouse';
+      if (!isMouse && e.cancelable) {
+        e.preventDefault();
+      }
+      const point = 'touches' in e ? e.touches[0] : e;
+      startX = point.clientX;
+      baseX = -current * pageWidth;
+    }
 
       function onMove(e) {
         if (!dragging) return;
@@ -571,18 +593,17 @@ function setupMobileMenu() {
         track.style.transform = `translate3d(${baseX + dx}px,0,0)`;
       }
 
-      function onUp(e) {
-        if (!dragging) return;
-        dragging = false;
-        ribbon.classList.remove('is-dragging');
-        if ((e?.type === 'pointerup' || e?.type === 'pointercancel') && activePointerId !== null && ribbon.releasePointerCapture) {
-          try {
-            if (e.pointerType !== 'mouse') {
-              ribbon.releasePointerCapture(activePointerId);
-            }
-          } catch (err) {
-            // ignore release errors (pointer already released)
+    function onUp(e) {
+      if (!dragging) return;
+      dragging = false;
+      ribbon.classList.remove('is-dragging');
+      if ((e?.type === 'pointerup' || e?.type === 'pointercancel') && activePointerId !== null && ribbon.releasePointerCapture) {
+        try {
+          if (e.pointerType !== 'mouse') {
+            ribbon.releasePointerCapture(activePointerId);
           }
+        } catch (err) {
+          // ignore release errors (pointer already released)
         }
         activePointerId = null;
         if (Math.abs(dx) > threshold) {
@@ -621,36 +642,40 @@ function setupMobileMenu() {
         window.addEventListener('mouseup', onUp);
       }
 
-      // Pause on hover/focus
-      ribbon.addEventListener('mouseenter', () => { paused = true; });
-      ribbon.addEventListener('mouseleave', () => { paused = false; });
+    prevBtn?.addEventListener('click', () => { goTo(current - 1, true); });
+    nextBtn?.addEventListener('click', () => { goTo(current + 1, true); });
+    media.addEventListener('mouseenter', () => { paused = true; });
+    media.addEventListener('mouseleave', () => { paused = false; });
+    media.addEventListener('focusin', () => { paused = true; });
+    media.addEventListener('focusout', () => { paused = false; });
 
-      // Resize handling per instance
-      let resizeTimer;
-      const onResize = () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => { calcLayout(); }, 120);
-      };
-      window.addEventListener('resize', onResize);
+    ribbon.addEventListener('dragstart', (event) => { event.preventDefault(); });
+    if (window.PointerEvent) {
+      ribbon.addEventListener('pointerdown', onDown);
+      ribbon.addEventListener('pointermove', onMove);
+      ribbon.addEventListener('pointerup', onUp);
+      ribbon.addEventListener('pointercancel', onUp);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
+    } else {
+      ribbon.addEventListener('touchstart', onDown, { passive: true });
+      ribbon.addEventListener('touchmove', onMove, { passive: true });
+      ribbon.addEventListener('touchend', onUp, { passive: true });
+      ribbon.addEventListener('mousedown', onDown);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    }
 
-      // First layout + autoplay
-      calcLayout();
-      if (pages > 1) startAutoplay();
+    // Pause on hover/focus
+    ribbon.addEventListener('mouseenter', () => { paused = true; });
+    ribbon.addEventListener('mouseleave', () => { paused = false; });
 
-      // Defensive cleanup if section is removed dynamically
-      const observer = new MutationObserver(() => {
-        if (!document.body.contains(media)) {
-          stopAutoplay();
-          window.removeEventListener('resize', onResize);
-          window.removeEventListener('pointermove', onMove);
-          window.removeEventListener('pointerup', onUp);
-          window.removeEventListener('pointercancel', onUp);
-          window.removeEventListener('mousemove', onMove);
-          window.removeEventListener('mouseup', onUp);
-          observer.disconnect();
-        }
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
+    // Resize handling
+    let rTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(rTimer);
+      rTimer = setTimeout(() => { calcLayout(); }, 120);
     });
   }
 

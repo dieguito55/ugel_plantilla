@@ -110,7 +110,7 @@ $accesos = ugel_get_accesos(8);
 /* Línea vertical gruesa a la derecha del aside */
 .ax-aside {
   position: sticky;
-  top: clamp(82px, 9vw, 116px);
+  top: 96px;
   padding-right: 20px;
   margin-right: 16px;
   background: transparent;
