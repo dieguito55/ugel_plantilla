@@ -109,13 +109,14 @@ $accesos = ugel_get_accesos(8);
 <style>
 /* Línea vertical gruesa a la derecha del aside */
 .ax-aside {
-  position: sticky; 
+  position: sticky;
   top: 96px;
-  padding-right: 20px; 
+  padding-right: 20px;
   margin-right: 16px;
-  background: transparent; 
+  background: transparent;
   max-width:100%;
   z-index: 10;
+  align-self: start;
   
   /* Línea vertical gruesa y visible */
   border-right: 4px solid;
@@ -150,8 +151,8 @@ $accesos = ugel_get_accesos(8);
 
 /* En móvil quitamos la línea */
 @media (max-width:1024px){
-  .ax-aside{ 
-    position: static; 
+  .ax-aside{
+    position: static;
     border-right: none; 
     padding-right: 0; 
     margin-right: 0; 
