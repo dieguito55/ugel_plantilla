@@ -485,24 +485,31 @@ get_template_part('template-parts/front-announcements');
           <div class="logo-ribbon__track">
             <?php
             $enlaces = get_enlaces_interes();
-            if ($enlaces):
-              // Duplicamos para scroll infinito
-              for ($i = 0; $i < 2; $i++):
-                foreach ($enlaces as $enlace):
+            $enlaces_count = is_array($enlaces) ? count($enlaces) : 0;
+            if ($enlaces_count):
+              $iterations = $enlaces_count > 1 ? 2 : 1; // solo duplicamos si hay más de un ítem
+              for ($i = 0; $i < $iterations; $i++):
+                foreach ($enlaces as $index => $enlace):
                   $url    = get_post_meta($enlace->ID, '_enlace_url', true);
                   $target = get_post_meta($enlace->ID, '_enlace_target', true) ?: '_self';
-                  $imagen = get_the_post_thumbnail_url($enlace->ID, 'quick-access');
-                  if ($imagen && $url): ?>
-                    <div class="logo-item">
-                      <a class="logo-ribbon__link" 
-                         href="<?php echo esc_url($url); ?>" 
+                  $imagen = get_the_post_thumbnail_url($enlace->ID, 'full') ?: get_the_post_thumbnail_url($enlace->ID, 'large');
+                  if ($url):
+                    $is_clone = $i > 0;
+                    $classes  = 'logo-item' . ($is_clone ? ' is-clone' : '');
+                    $rel      = $target === '_blank' ? 'noopener noreferrer' : '';
+                    ?>
+                    <div class="<?php echo esc_attr($classes); ?>" data-index="<?php echo esc_attr($index); ?>"<?php echo $is_clone ? ' data-clone="1"' : ''; ?>>
+                      <a class="logo-ribbon__link"
+                         href="<?php echo esc_url($url); ?>"
                          target="<?php echo esc_attr($target); ?>"
-                         rel="<?php echo $target === '_blank' ? 'noopener noreferrer' : ''; ?>"
+                         <?php if ($rel): ?>rel="<?php echo esc_attr($rel); ?>"<?php endif; ?>
                          aria-label="<?php echo esc_attr($enlace->post_title); ?>">
                         <div class="logo-frame">
-                          <img src="<?php echo esc_url($imagen); ?>"
-                               alt="<?php echo esc_attr($enlace->post_title); ?>"
-                               loading="lazy" decoding="async">
+                          <?php if ($imagen): ?>
+                            <img src="<?php echo esc_url($imagen); ?>"
+                                 alt="<?php echo esc_attr($enlace->post_title); ?>"
+                                 loading="lazy" decoding="async">
+                          <?php endif; ?>
                         </div>
                       </a>
                       <span class="logo-title"><?php echo esc_html($enlace->post_title); ?></span>

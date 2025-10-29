@@ -4932,9 +4932,9 @@ body.mm-open #chatOverlay{
   --c-deep:#021F59;  --c-navy:#000C97; --c-accent:#8297FE;
 
   /* Escalas base (más compactas aún) */
-  --container-w:1280px;
-  --ribbon-h:176px;     /* ↓ altura carrusel */
-  --logo-h:98px;        /* ↓ altura logos */
+  --container-w:1200px;
+  --ribbon-h:170px;     /* ↓ altura carrusel */
+  --logo-h:96px;        /* ↓ altura logos */
   --logo-pad-x:12px;    /* ↓ separación horizontal entre logos */
 
   background:var(--c-white);
@@ -4953,7 +4953,7 @@ body.mm-open #chatOverlay{
 /* Grid: carrusel izq / título der */
 .interest-links__grid{
   display:grid;
-  grid-template-columns:minmax(0,1fr) 320px; /* título más delgado */
+  grid-template-columns:minmax(0,1fr) 300px; /* título más delgado */
   gap:clamp(12px,2.6vw,24px);
   align-items:center;
 }
@@ -4991,16 +4991,17 @@ body.mm-open #chatOverlay{
   flex:1;
   position:relative;
 }
+.logo-ribbon.is-dragging,
 .logo-ribbon.dragging{ cursor:grabbing; }
 
 /* Pista animada (fallback) */
 .logo-ribbon__track{
   display:grid;
   grid-auto-flow:column;
-  grid-auto-columns:minmax(200px, clamp(220px, 28vw, 260px));
+  grid-auto-columns:minmax(196px, clamp(210px, 26vw, 248px));
   align-items:center;
-  gap: clamp(14px, 2.6vw, 22px);
-  padding: clamp(12px, 2.4vw, 18px) clamp(52px, 6vw, 72px);
+  gap: clamp(12px, 2.4vw, 20px);
+  padding: clamp(12px, 2.4vw, 18px) clamp(48px, 5.4vw, 68px);
   will-change:transform;
   animation: none;
 }
@@ -5028,9 +5029,9 @@ body.mm-open #chatOverlay{
 .logo-frame{
   display:flex; align-items:center; justify-content:center;
   height:var(--logo-h);
-  width: clamp(160px, 24vw, 240px);
+  width: clamp(150px, 22vw, 228px);
   border-radius:16px;
-  padding: 0 12px;
+  padding: 0 clamp(10px, 2.1vw, 16px);
 }
 .logo-ribbon__link{ outline:none; border-radius:8px; }
 .logo-ribbon__link:focus-visible{
@@ -5039,8 +5040,11 @@ body.mm-open #chatOverlay{
 }
 .logo-ribbon__link img{
   max-height:var(--logo-h);
-  max-width:clamp(150px, 24vw, 220px);
-  width:100%; height:100%; object-fit:contain; object-position:center;
+  max-width:100%;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  object-position:center;
   transition:transform .16s ease;
 }
 .logo-item:hover .logo-ribbon__link img{ transform:scale(1.035); }

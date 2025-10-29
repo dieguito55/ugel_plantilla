@@ -422,12 +422,19 @@ function setupMobileMenu() {
     const track = ribbon?.querySelector('.logo-ribbon__track');
     if (!media || !ribbon || !track) return;
 
+    const rawItems = Array.from(track.querySelectorAll('.logo-item'));
+    const clones = rawItems.filter(item => item.dataset.clone === '1');
+    if (clones.length) {
+      clones.forEach(clone => clone.remove());
+    }
+
     const items = Array.from(track.querySelectorAll('.logo-item'));
     if (!items.length) return;
 
     // Ensure base styles hook
     ribbon.dataset.enhanced = '1';
     media.dataset.enhanced = '1';
+    track.dataset.enhanced = '1';
 
     const prevBtn = media.querySelector('.logo-ribbon__nav.is-prev');
     const nextBtn = media.querySelector('.logo-ribbon__nav.is-next');
@@ -458,10 +465,12 @@ function setupMobileMenu() {
       const itemWidth = firstItem ? firstItem.getBoundingClientRect().width : Math.max(220, viewportWidth);
       const style = window.getComputedStyle(track);
       const gapRaw = parseFloat(style.columnGap || style.gap || 0);
-      itemsPerPage = Math.max(1, Math.floor(viewportWidth / Math.max(1, itemWidth)));
+      const effectiveWidth = Math.max(1, itemWidth + gapRaw);
+      itemsPerPage = Math.max(1, Math.floor((viewportWidth + gapRaw) / effectiveWidth));
       pages = Math.max(1, Math.ceil(items.length / itemsPerPage));
       const pageSpan = (itemWidth * itemsPerPage) + (Math.max(itemsPerPage - 1, 0) * gapRaw);
-      pageWidth = Math.max(1, Math.min(pageSpan || viewportWidth, track.scrollWidth / pages || viewportWidth));
+      const averageWidth = pages > 0 ? track.scrollWidth / pages : viewportWidth;
+      pageWidth = Math.max(1, Math.min(pageSpan || viewportWidth, averageWidth || viewportWidth));
       buildDots();
       snapTo(current, false);
       updateNavState();
@@ -482,10 +491,16 @@ function setupMobileMenu() {
     }
 
     function snapTo(idx, animate = true) {
-      current = ((idx % pages) + pages) % pages;
-      const x = -(current * pageWidth);
-      track.style.transition = animate ? 'transform 420ms cubic-bezier(.2,.65,.2,1)' : 'none';
-      track.style.transform = `translate3d(${x}px,0,0)`;
+      if (pages <= 1) {
+        current = 0;
+        track.style.transition = 'none';
+        track.style.transform = 'translate3d(0,0,0)';
+      } else {
+        current = ((idx % pages) + pages) % pages;
+        const x = -(current * pageWidth);
+        track.style.transition = animate ? 'transform 420ms cubic-bezier(.2,.65,.2,1)' : 'none';
+        track.style.transform = `translate3d(${x}px,0,0)`;
+      }
       // Dots state
       const children = dotsWrap.children;
       for (let i = 0; i < children.length; i++) {
