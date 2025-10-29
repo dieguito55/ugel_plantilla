@@ -2455,12 +2455,41 @@ add_action('admin_notices', 'ugel_chatbot_admin_debug_info');
 
 
 /* ===========================================================
- * SEO On-Page (OG/Twitter/JSON-LD/Canonical)
+ * SEO técnico (head/metas/schema)
  * =========================================================== */
 
-// Evitar duplicados si hay plugin SEO
-function ugel_has_seo_plugin() {
-    return defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION') || defined('SEOPRESS_VERSION');
+if (!function_exists('ugel_has_seo_plugin')) {
+    /**
+     * Detecta plugins SEO comunes para evitar duplicar etiquetas.
+     */
+    function ugel_has_seo_plugin() {
+        return defined('WPSEO_VERSION')
+            || defined('RANK_MATH_VERSION')
+            || defined('SEOPRESS_VERSION')
+            || defined('AIOSEO_VERSION')
+            || class_exists('The_SEO_Framework\Load');
+    }
+}
+
+if (!function_exists('ugel_seo_bootstrap')) {
+    function ugel_seo_bootstrap() {
+        add_filter('language_attributes', 'ugel_language_attributes', 10, 2);
+        add_filter('pre_get_document_title', 'ugel_filter_document_title');
+        add_filter('document_title_separator', 'ugel_document_title_separator');
+        add_filter('wp_title', 'ugel_legacy_wp_title', 10, 3);
+
+        if (ugel_has_seo_plugin()) {
+            return;
+        }
+
+        add_action('wp_head', 'ugel_meta_robots', 2);
+        add_action('wp_head', 'ugel_meta_description', 4);
+        add_action('wp_head', 'ugel_canonical_link', 5);
+        add_action('wp_head', 'ugel_hreflang_links', 5);
+        add_action('wp_head', 'ugel_open_graph_tags', 6);
+        add_action('wp_head', 'ugel_structured_data', 7);
+    }
+    add_action('after_setup_theme', 'ugel_seo_bootstrap');
 }
 
 // Canonical
@@ -2498,64 +2527,38 @@ add_action('wp_head', function(){
     echo '<link rel="canonical" href="'.esc_url((is_singular() ? get_permalink() : home_url(add_query_arg(array(), $GLOBALS['wp']->request)))) . '/">'. "\n";
 }, 5);
 
-// Open Graph & Twitter Cards
-add_action('wp_head', function(){
-    if (is_admin() || ugel_has_seo_plugin()) return;
-
-    $title = wp_get_document_title();
-    $desc  = '';
-    $url   = home_url('/');
-    $img   = '';
-
-    if (is_singular()) {
-        global $post;
-        $url  = get_permalink($post);
-        $desc = has_excerpt($post) ? wp_strip_all_tags(get_the_excerpt($post)) : wp_trim_words(wp_strip_all_tags($post->post_content), 30);
-        if (has_post_thumbnail($post)) {
-            $img = get_the_post_thumbnail_url($post, 'large');
+        if ('html' === $doctype) {
+            $output = sprintf('lang="%s" dir="%s"', esc_attr($lang), esc_attr($dir));
+        } else {
+            $output = esc_attr($lang);
         }
-    } else {
-        $desc = get_bloginfo('description');
-        $img  = get_site_icon_url(512);
+
+        return $output;
     }
+}
 
-    echo "\n<!-- UGEL SEO -->\n";
-    echo '<meta property="og:type" content="'.(is_singular() ? 'article' : 'website').'">'."\n";
-    echo '<meta property="og:title" content="'.esc_attr($title).'">'."\n";
-    if ($desc) echo '<meta property="og:description" content="'.esc_attr($desc).'">'."\n";
-    echo '<meta property="og:url" content="'.esc_url($url).'">'."\n";
-    if ($img) echo '<meta property="og:image" content="'.esc_url($img).'">'."\n";
+if (!function_exists('ugel_document_title_separator')) {
+    function ugel_document_title_separator($sep) {
+        return '|';
+    }
+}
 
-    echo '<meta name="twitter:card" content="'.($img ? 'summary_large_image' : 'summary').'">'."\n";
-    echo '<meta name="twitter:title" content="'.esc_attr($title).'">'."\n";
-    if ($desc) echo '<meta name="twitter:description" content="'.esc_attr($desc).'">'."\n";
-    if ($img) echo '<meta name="twitter:image" content="'.esc_url($img).'">'."\n";
-}, 6);
+if (!function_exists('ugel_filter_document_title')) {
+    function ugel_filter_document_title($title) {
+        $site_name = get_bloginfo('name');
+        $tagline   = get_bloginfo('description');
 
-// JSON-LD Organization + BreadcrumbList
-add_action('wp_head', function(){
-    if (is_admin() || ugel_has_seo_plugin()) return;
+        if (is_front_page() && !is_paged()) {
+            return $tagline ? sprintf('%s %s %s', $site_name, '|', $tagline) : $site_name;
+        }
 
-    $org = array(
-        '@context' => 'https://schema.org',
-        '@type'    => 'Organization',
-        'name'     => get_bloginfo('name'),
-        'url'      => home_url('/'),
-        'logo'     => get_site_icon_url(512) ?: (get_custom_logo() ? wp_get_attachment_image_url(get_theme_mod('custom_logo'), 'full') : ''),
-        'email'    => get_theme_mod('ugel_email', ''),
-        'telephone'=> get_theme_mod('ugel_phone', ''),
-        'address'  => array(
-            '@type' => 'PostalAddress',
-            'streetAddress' => get_theme_mod('ugel_address', '')
-        ),
-        'sameAs'   => array_filter(array(
-            get_theme_mod('ugel_facebook', ''),
-            get_theme_mod('ugel_twitter', ''),
-            get_theme_mod('ugel_instagram', '')
-        ))
-    );
-
-    $schemas = array($org);
+        if (is_singular()) {
+            $context = single_post_title('', false);
+        } elseif (function_exists('get_the_archive_title')) {
+            $context = trim(wp_strip_all_tags(get_the_archive_title('', false)));
+        } else {
+            $context = $title;
+        }
 
     if (is_front_page() || is_home()) {
         $schemas[] = array(
@@ -2577,21 +2580,476 @@ add_action('wp_head', function(){
             array('@type'=>'ListItem','position'=>1,'name'=>__('Inicio','ugel-theme'),'item'=>home_url('/'))
         );
         if (is_singular()) {
-            $items[] = array('@type'=>'ListItem','position'=>2,'name'=>get_the_title(),'item'=>get_permalink());
-        } elseif (is_category()) {
-            $items[] = array('@type'=>'ListItem','position'=>2,'name'=>single_cat_title('',false),'item'=>get_category_link(get_queried_object_id()));
+            $post = get_queried_object();
+            if ($post) {
+                if (has_excerpt($post)) {
+                    $desc = $post->post_excerpt;
+                } else {
+                    $desc = wp_strip_all_tags($post->post_content);
+                }
+            }
+        } elseif (is_home() && !is_front_page()) {
+            $page_for_posts = get_option('page_for_posts');
+            if ($page_for_posts) {
+                $desc = get_post_field('post_excerpt', $page_for_posts);
+                if (!$desc) {
+                    $desc = wp_strip_all_tags(get_post_field('post_content', $page_for_posts));
+                }
+            }
+        } elseif (is_category() || is_tag() || is_tax()) {
+            $desc = term_description();
+        } elseif (is_post_type_archive()) {
+            $object = get_queried_object();
+            if ($object && !empty($object->description)) {
+                $desc = $object->description;
+            }
         } elseif (is_search()) {
-            $items[] = array('@type'=>'ListItem','position'=>2,'name'=>sprintf(__('Búsqueda: %s','ugel-theme'), get_search_query()));
+            $desc = sprintf(__('Resultados para "%s" en UGEL El Collao.', 'ugel-theme'), get_search_query());
+        } else {
+            $desc = get_bloginfo('description');
         }
-        $schemas[] = array(
-            '@context' => 'https://schema.org',
-            '@type'    => 'BreadcrumbList',
-            'itemListElement' => $items
-        );
-    }
 
-    echo '<script type="application/ld+json">'. wp_json_encode($schemas) .'</script>' . "\n";
-}, 7);
+        if (empty($desc)) {
+            return '';
+        }
+
+        $desc = wp_strip_all_tags($desc);
+        $desc = preg_replace('/\s+/u', ' ', $desc);
+        $desc = trim(wp_trim_words($desc, 36, '…'));
+
+        return $desc;
+    }
+}
+
+if (!function_exists('ugel_meta_description')) {
+    function ugel_meta_description() {
+        $desc = ugel_get_meta_description();
+        if ($desc) {
+            echo '<meta name="description" content="' . esc_attr($desc) . '">' . "\n";
+        }
+    }
+}
+
+if (!function_exists('ugel_get_canonical_url')) {
+    function ugel_get_canonical_url() {
+        global $wp;
+
+        if (is_front_page()) {
+            $canonical = home_url('/');
+        } elseif (is_home() && !is_front_page()) {
+            $page_for_posts = get_option('page_for_posts');
+            $canonical = $page_for_posts ? get_permalink($page_for_posts) : home_url('/');
+        } elseif (is_singular()) {
+            $canonical = get_permalink();
+        } elseif (is_post_type_archive()) {
+            $canonical = get_post_type_archive_link(get_post_type());
+        } elseif (is_category() || is_tag() || is_tax()) {
+            $term = get_queried_object();
+            $canonical = $term ? get_term_link($term) : '';
+        } elseif (is_author()) {
+            $canonical = get_author_posts_url(get_queried_object_id());
+        } elseif (is_search()) {
+            $canonical = get_search_link();
+        } elseif (is_404()) {
+            $canonical = '';
+        } else {
+            $canonical = isset($wp->request) ? home_url($wp->request) : home_url('/');
+        }
+
+        if (is_paged()) {
+            $paged_link = get_pagenum_link(get_query_var('paged') ?: 1);
+            if ($paged_link) {
+                $canonical = $paged_link;
+            }
+        }
+
+        if (empty($canonical) || is_wp_error($canonical)) {
+            return '';
+        }
+
+        if (false === strpos($canonical, '?')) {
+            $canonical = trailingslashit($canonical);
+        }
+
+        return $canonical;
+    }
+}
+
+if (!function_exists('ugel_canonical_link')) {
+    function ugel_canonical_link() {
+        $canonical = ugel_get_canonical_url();
+        if ($canonical) {
+            echo '<link rel="canonical" href="' . esc_url($canonical) . '">' . "\n";
+        }
+    }
+}
+
+if (!function_exists('ugel_meta_robots')) {
+    function ugel_meta_robots() {
+        if (!get_option('blog_public')) {
+            echo '<meta name="robots" content="noindex, nofollow">' . "\n";
+            return;
+        }
+
+        $noindex = is_search() || is_404() || is_attachment();
+
+        if ($noindex) {
+            echo '<meta name="robots" content="noindex, follow">' . "\n";
+        }
+    }
+}
+
+if (!function_exists('ugel_hreflang_links')) {
+    function ugel_hreflang_links() {
+        $canonical = ugel_get_canonical_url();
+        if (!$canonical) {
+            return;
+        }
+
+        echo '<link rel="alternate" hreflang="es-pe" href="' . esc_url($canonical) . '">' . "\n";
+        echo '<link rel="alternate" hreflang="x-default" href="' . esc_url($canonical) . '">' . "\n";
+    }
+}
+
+if (!function_exists('ugel_get_social_handle')) {
+    function ugel_get_social_handle($url, $network) {
+        if (empty($url)) {
+            return '';
+        }
+
+        $parsed = wp_parse_url($url);
+        if (empty($parsed['host'])) {
+            return '';
+        }
+
+        $path = isset($parsed['path']) ? trim($parsed['path'], '/') : '';
+        if (!$path) {
+            return '';
+        }
+
+        if ('twitter' === $network) {
+            $path = explode('/', $path);
+            $handle = ltrim(reset($path), '@');
+            return $handle ? '@' . $handle : '';
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('ugel_get_primary_image')) {
+    function ugel_get_primary_image() {
+        if (is_singular() && has_post_thumbnail()) {
+            $image_id = get_post_thumbnail_id();
+            $image    = wp_get_attachment_image_src($image_id, 'full');
+            if ($image) {
+                return array(
+                    'url'    => $image[0],
+                    'width'  => $image[1],
+                    'height' => $image[2],
+                    'alt'    => get_post_meta($image_id, '_wp_attachment_image_alt', true) ?: get_the_title()
+                );
+            }
+        }
+
+        $icon = get_site_icon_url(512);
+        if ($icon) {
+            return array(
+                'url'    => $icon,
+                'width'  => 512,
+                'height' => 512,
+                'alt'    => get_bloginfo('name')
+            );
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('ugel_open_graph_tags')) {
+    function ugel_open_graph_tags() {
+        $title = wp_get_document_title();
+        $desc  = ugel_get_meta_description();
+        $url   = ugel_get_canonical_url() ?: home_url('/');
+        $image = ugel_get_primary_image();
+        $site  = get_bloginfo('name');
+        $type  = is_singular() ? 'article' : 'website';
+        $twitter_handle = ugel_get_social_handle(get_theme_mod('ugel_twitter', ''), 'twitter');
+
+        echo "\n<!-- UGEL SEO -->\n";
+        echo '<meta property="og:locale" content="es_PE">' . "\n";
+        echo '<meta property="og:site_name" content="' . esc_attr($site) . '">' . "\n";
+        echo '<meta property="og:type" content="' . esc_attr($type) . '">' . "\n";
+        echo '<meta property="og:title" content="' . esc_attr($title) . '">' . "\n";
+        echo '<meta property="og:url" content="' . esc_url($url) . '">' . "\n";
+        if ($desc) {
+            echo '<meta property="og:description" content="' . esc_attr($desc) . '">' . "\n";
+        }
+        if ($image) {
+            echo '<meta property="og:image" content="' . esc_url($image['url']) . '">' . "\n";
+            if (!empty($image['width']) && !empty($image['height'])) {
+                echo '<meta property="og:image:width" content="' . intval($image['width']) . '">' . "\n";
+                echo '<meta property="og:image:height" content="' . intval($image['height']) . '">' . "\n";
+            }
+            if (!empty($image['alt'])) {
+                echo '<meta property="og:image:alt" content="' . esc_attr($image['alt']) . '">' . "\n";
+            }
+        }
+
+        echo '<meta name="twitter:card" content="' . ($image ? 'summary_large_image' : 'summary') . '">' . "\n";
+        echo '<meta name="twitter:title" content="' . esc_attr($title) . '">' . "\n";
+        if ($desc) {
+            echo '<meta name="twitter:description" content="' . esc_attr($desc) . '">' . "\n";
+        }
+        if ($image) {
+            echo '<meta name="twitter:image" content="' . esc_url($image['url']) . '">' . "\n";
+        }
+        if ($twitter_handle) {
+            echo '<meta name="twitter:site" content="' . esc_attr($twitter_handle) . '">' . "\n";
+        }
+    }
+}
+
+if (!function_exists('ugel_collect_navigation_targets')) {
+    function ugel_collect_navigation_targets() {
+        $convocatorias = get_post_type_archive_link('convocatorias');
+        $comunicados   = get_post_type_archive_link('comunicados');
+
+        $targets = array(
+            array(
+                'label' => __('Portada', 'ugel-theme'),
+                'url'   => home_url('/')
+            ),
+            array(
+                'label' => __('Convocatorias', 'ugel-theme'),
+                'url'   => !is_wp_error($convocatorias) ? $convocatorias : ''
+            ),
+            array(
+                'label' => __('Comunicados', 'ugel-theme'),
+                'url'   => !is_wp_error($comunicados) ? $comunicados : ''
+            ),
+        );
+
+        $static_pages = array(
+            'gestion-pedagogica' => __('Gestión Pedagógica', 'ugel-theme'),
+            'direccion'          => __('Dirección', 'ugel-theme'),
+            'mision-y-vision'    => __('Misión y Visión', 'ugel-theme'),
+        );
+
+        foreach ($static_pages as $slug => $label) {
+            $page = get_page_by_path($slug);
+            if ($page) {
+                $url = get_permalink($page->ID);
+            } else {
+                $url = trailingslashit(home_url('/' . $slug));
+            }
+
+            $targets[] = array(
+                'label' => $label,
+                'url'   => !is_wp_error($url) ? $url : '',
+            );
+        }
+
+        $targets = array_filter($targets, function ($item) {
+            return !empty($item['url']);
+        });
+
+        return array_values($targets);
+    }
+}
+
+if (!function_exists('ugel_structured_data')) {
+    function ugel_structured_data() {
+        $schemas = array();
+        $canonical = ugel_get_canonical_url() ?: home_url('/');
+        $site_name = get_bloginfo('name');
+        $site_url  = home_url('/');
+        $tagline   = get_bloginfo('description');
+        $logo_id   = get_theme_mod('custom_logo');
+        $logo_url  = get_site_icon_url(512);
+
+        if (!$logo_url && $logo_id) {
+            $logo_url = wp_get_attachment_image_url($logo_id, 'full');
+        }
+
+        $org_id   = $site_url . '#organization';
+        $site_id  = $site_url . '#website';
+        $page_id  = trailingslashit($canonical) . '#webpage';
+        $crumb_id = $site_url . '#breadcrumb';
+        $nav_id   = $site_url . '#site-navigation';
+
+        $same_as = array_filter(array(
+            get_theme_mod('ugel_facebook', ''),
+            get_theme_mod('ugel_twitter', ''),
+            get_theme_mod('ugel_instagram', ''),
+            get_theme_mod('ugel_youtube', '')
+        ));
+
+        $contact_point = array();
+        $telephone     = get_theme_mod('ugel_phone', '');
+        if ($telephone) {
+            $contact_point[] = array(
+                '@type'       => 'ContactPoint',
+                'telephone'   => $telephone,
+                'contactType' => __('Servicio al ciudadano', 'ugel-theme'),
+                'availableLanguage' => array('es-PE')
+            );
+        }
+
+        $address = array_filter(array(
+            '@type'         => 'PostalAddress',
+            'streetAddress' => get_theme_mod('ugel_address', ''),
+            'addressLocality' => get_theme_mod('ugel_city', ''),
+            'addressRegion' => get_theme_mod('ugel_region', 'Puno'),
+            'addressCountry' => 'PE'
+        ));
+
+        $organization = array(
+            '@context'    => 'https://schema.org',
+            '@type'       => 'GovernmentOrganization',
+            '@id'         => $org_id,
+            'name'        => $site_name,
+            'url'         => $site_url,
+            'logo'        => $logo_url,
+            'email'       => get_theme_mod('ugel_email', ''),
+            'telephone'   => $telephone,
+            'address'     => !empty($address) ? $address : null,
+            'sameAs'      => $same_as,
+            'contactPoint'=> $contact_point,
+        );
+
+        $organization = array_filter($organization);
+        if (!empty($organization['contactPoint']) && empty($contact_point)) {
+            unset($organization['contactPoint']);
+        }
+
+        $schemas[] = $organization;
+
+        $website = array(
+            '@context'        => 'https://schema.org',
+            '@type'           => 'WebSite',
+            '@id'             => $site_id,
+            'url'             => $site_url,
+            'name'            => $site_name,
+            'publisher'       => array('@id' => $org_id),
+            'inLanguage'      => 'es-PE',
+            'description'     => $tagline,
+            'potentialAction' => array(
+                '@type'       => 'SearchAction',
+                'target'      => add_query_arg('s', '{search_term_string}', home_url('/')),
+                'query-input' => 'required name=search_term_string'
+            )
+        );
+
+        $schemas[] = array_filter($website);
+
+        $page_type = 'WebPage';
+        if (is_front_page()) {
+            $page_type = 'WebPage';
+        } elseif (is_home()) {
+            $page_type = 'CollectionPage';
+        } elseif (is_post_type_archive('convocatorias') || is_post_type_archive('comunicados') || is_archive()) {
+            $page_type = 'CollectionPage';
+        } elseif (is_singular(array('post', 'page'))) {
+            $page_type = 'WebPage';
+        } elseif (is_singular('convocatorias')) {
+            $page_type = 'Event';
+        } elseif (is_singular('comunicados')) {
+            $page_type = 'Article';
+        }
+
+        $page_schema = array(
+            '@context'    => 'https://schema.org',
+            '@type'       => $page_type,
+            '@id'         => $page_id,
+            'url'         => $canonical,
+            'name'        => wp_get_document_title(),
+            'inLanguage'  => 'es-PE',
+            'isPartOf'    => array('@id' => $site_id),
+            'description' => ugel_get_meta_description() ?: $tagline,
+        );
+
+        if (is_singular()) {
+            $page_schema['mainEntityOfPage'] = array('@id' => $site_id);
+        }
+
+        $schemas[] = array_filter($page_schema);
+
+        if (!is_front_page()) {
+            $breadcrumbs = array(
+                '@context'        => 'https://schema.org',
+                '@type'           => 'BreadcrumbList',
+                '@id'             => $crumb_id,
+                'itemListElement' => array(
+                    array(
+                        '@type'    => 'ListItem',
+                        'position' => 1,
+                        'name'     => __('Inicio', 'ugel-theme'),
+                        'item'     => $site_url,
+                    ),
+                ),
+            );
+
+            if (is_singular()) {
+                $breadcrumbs['itemListElement'][] = array(
+                    '@type'    => 'ListItem',
+                    'position' => 2,
+                    'name'     => get_the_title(),
+                    'item'     => get_permalink(),
+                );
+            } elseif (is_category() || is_tag() || is_tax()) {
+                $term = get_queried_object();
+                if ($term) {
+                    $breadcrumbs['itemListElement'][] = array(
+                        '@type'    => 'ListItem',
+                        'position' => 2,
+                        'name'     => single_term_title('', false),
+                        'item'     => get_term_link($term),
+                    );
+                }
+            } elseif (is_search()) {
+                $breadcrumbs['itemListElement'][] = array(
+                    '@type'    => 'ListItem',
+                    'position' => 2,
+                    'name'     => sprintf(__('Búsqueda: %s', 'ugel-theme'), get_search_query()),
+                );
+            }
+
+            $schemas[] = $breadcrumbs;
+        }
+
+        $nav_targets = ugel_collect_navigation_targets();
+        if (!empty($nav_targets)) {
+            $nav_schema = array(
+                '@context' => 'https://schema.org',
+                '@type'    => 'SiteNavigationElement',
+                '@id'      => $nav_id,
+                'name'     => __('Navegación principal', 'ugel-theme'),
+                'inLanguage' => 'es-PE',
+                'hasPart'  => array_map(function ($item) {
+                    return array(
+                        '@type' => 'SiteNavigationElement',
+                        'name'  => $item['label'],
+                        'url'   => $item['url'],
+                    );
+                }, $nav_targets),
+            );
+
+            $schemas[] = $nav_schema;
+        }
+
+        $schemas = array_filter($schemas);
+        $schemas = array_values(array_filter($schemas, function ($entry) {
+            return !empty($entry);
+        }));
+
+        if (empty($schemas)) {
+            return;
+        }
+
+        echo '<script type="application/ld+json">' . wp_json_encode($schemas, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
+    }
+}
 /* ================== Vistas por entrada — UGEL ================== */
 if (!function_exists('ugel_is_bot')) {
   function ugel_is_bot() {
