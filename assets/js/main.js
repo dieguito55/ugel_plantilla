@@ -15,18 +15,21 @@
     setupMenuSplitting();
     setupMobileMenu();
     setupStickySubheader();
-    
+
     setupInterestLinks();
-    setupSiteViewsBadge();
-    // Ensure it renders even if footer mounts late
-    window.addEventListener('load', setupSiteViewsBadge);
-    setTimeout(setupSiteViewsBadge, 1200);
-    setTimeout(setupSiteViewsBadge, 3000);
-    setupForms();
-    setupLazyLoading();
-    setupSmoothScrolling();
-    setupAccessibility();
-    setupSearchEnhancements();
+    ensureSiteViewsBadge();
+
+    const queueIdle = window.requestIdleCallback
+      ? (cb) => window.requestIdleCallback(cb, { timeout: 600 })
+      : (cb) => setTimeout(() => cb({ didTimeout: true, timeRemaining: () => 0 }), 160);
+
+    queueIdle(() => {
+      setupForms();
+      setupLazyLoading();
+      setupSmoothScrolling();
+      setupAccessibility();
+      setupSearchEnhancements();
+    });
   }
 
   /* Menu label typography adjustments */
@@ -684,20 +687,31 @@ function setupMobileMenu() {
   // Site-wide views badge injection (non-intrusive)
   function setupSiteViewsBadge() {
     try {
-      if (document.querySelector('.foot-bottom .site-views')) return;
+      if (document.querySelector('.foot-bottom .site-views')) return true;
       const n = (window.ugel_ajax && typeof window.ugel_ajax.site_views === 'number') ? window.ugel_ajax.site_views : null;
-      if (n == null) return;
+      if (typeof n !== 'number') return false;
       const slot = document.querySelector('.foot-bottom > div');
-      if (!slot) return;
-      const sep = document.createTextNode(' \u00B7 ');
+      if (!slot) return false;
+      const fragment = document.createDocumentFragment();
+      fragment.appendChild(document.createTextNode(' \u00B7 '));
       const span = document.createElement('span');
       span.className = 'site-views';
       span.setAttribute('aria-label', 'Visitas al sitio');
       span.textContent = `Visitas: ${new Intl.NumberFormat().format(n)}`;
-      // Insert just before any post-views badge if present
-      slot.appendChild(sep);
-      slot.appendChild(span);
-    } catch(_){}
+      fragment.appendChild(span);
+      slot.appendChild(fragment);
+      return true;
+    } catch(_) {
+      return false;
+    }
+  }
+
+  function ensureSiteViewsBadge() {
+    const attempts = [0, 600, 1800, 3600];
+    attempts.forEach(delay => {
+      setTimeout(() => { setupSiteViewsBadge(); }, delay);
+    });
+    window.addEventListener('load', () => { setupSiteViewsBadge(); }, { once: true });
   }
 
   /* Live search suggestions in desktop and mobile forms */
