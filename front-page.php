@@ -24,8 +24,12 @@ get_template_part('template-parts/front-announcements');
         $aria_hidden  = $slide_count === 1 ? 'false' : 'true';
     ?>
     <article class="hero-slide align-<?php echo esc_attr($alineacion); ?> <?php echo $active_class; ?>" aria-hidden="<?php echo $aria_hidden; ?>">
-      <?php if ($imagen): ?>
-        <img src="<?php echo esc_url($imagen); ?>" alt="<?php echo esc_attr($slide->post_title); ?>" />
+      <?php if ($imagen):
+        $hero_img_attrs = $slide_count === 1
+          ? ' fetchpriority="high" decoding="async"'
+          : ' loading="lazy" decoding="async"';
+      ?>
+        <img src="<?php echo esc_url($imagen); ?>" alt="<?php echo esc_attr($slide->post_title); ?>"<?php echo $hero_img_attrs; ?> />
       <?php endif; ?>
       <div class="veil" aria-hidden="true"></div>
 
@@ -160,6 +164,7 @@ get_template_part('template-parts/front-announcements');
           }
         }
         ?>
+        <?php $schema_lists = array('destacados' => array(), 'comunicados' => array(), 'convocatorias' => array()); ?>
          <!-- =================== -->
         <!-- DESTACADOS (1 x 6) -->
         <!-- =================== -->
@@ -170,7 +175,11 @@ get_template_part('template-parts/front-announcements');
           'post_status'    => 'publish',
           'orderby'        => 'date',
           'order'          => 'DESC',
-          'category_name'  => 'destacados'
+          'category_name'  => 'destacados',
+          'no_found_rows'  => true,
+          'ignore_sticky_posts' => true,
+          'update_post_meta_cache' => false,
+          'update_post_term_cache' => false,
         ]);
         if ($q_destacados->have_posts()): ?>
         <section class="hub-sec" aria-labelledby="hub-destacados">
@@ -186,6 +195,17 @@ get_template_part('template-parts/front-announcements');
               $img = get_the_post_thumbnail_url(get_the_ID(), 'featured-small');
               $sum = function_exists('ugel_front_snippet') ? ugel_front_snippet(get_post(), 28) : '';
               $has_img = !empty($img);
+              $schema_lists['destacados'][] = array(
+                '@type' => 'ListItem',
+                'position' => count($schema_lists['destacados']) + 1,
+                'item' => array(
+                  '@type' => 'Article',
+                  '@id'   => esc_url_raw($url),
+                  'url'   => esc_url_raw($url),
+                  'name'  => wp_strip_all_tags($ttl),
+                  'description' => wp_strip_all_tags($sum ?: $ttl),
+                ),
+              );
             ?>
             <li class="comm-item <?php echo $has_img ? '' : 'noimg'; ?>" itemscope itemtype="https://schema.org/Article">
 
@@ -227,7 +247,11 @@ get_template_part('template-parts/front-announcements');
       'posts_per_page' => 6,
       'post_status'    => 'publish',
       'orderby'        => 'date',
-      'order'          => 'DESC'
+      'order'          => 'DESC',
+      'no_found_rows'  => true,
+      'ignore_sticky_posts' => true,
+      'update_post_meta_cache' => false,
+      'update_post_term_cache' => false,
     ]);
     if ($q_com->have_posts()): ?>
       <ol class="comm-list">
@@ -237,6 +261,17 @@ get_template_part('template-parts/front-announcements');
           $img = get_the_post_thumbnail_url(get_the_ID(), 'featured-small');
           $sum = function_exists('ugel_front_snippet') ? ugel_front_snippet(get_post(), 28) : '';
           $has_img = !empty($img);
+          $schema_lists['comunicados'][] = array(
+            '@type' => 'ListItem',
+            'position' => count($schema_lists['comunicados']) + 1,
+            'item' => array(
+              '@type' => 'Article',
+              '@id'   => esc_url_raw($url),
+              'url'   => esc_url_raw($url),
+              'name'  => wp_strip_all_tags($ttl),
+              'description' => wp_strip_all_tags($sum ?: $ttl),
+            ),
+          );
         ?>
         <li class="comm-item <?php echo $has_img ? '' : 'noimg'; ?>" itemscope itemtype="https://schema.org/Article">
 
@@ -286,7 +321,11 @@ get_template_part('template-parts/front-announcements');
             'posts_per_page' => 6,
             'post_status'    => 'publish',
             'orderby'        => 'date',
-            'order'          => 'DESC'
+            'order'          => 'DESC',
+            'no_found_rows'  => true,
+            'ignore_sticky_posts' => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
           ]);
           if ($q_conv->have_posts()): ?>
             <div class="conv-preview" role="list" aria-label="Listado rápido de convocatorias">
@@ -319,6 +358,48 @@ get_template_part('template-parts/front-announcements');
                   $convocatoria_url
                 );
                 $highlight_url .= '#convocatoria-' . get_the_ID();
+
+                $event_status = 'https://schema.org/EventScheduled';
+                if ($slug === 'en_proceso') {
+                  $event_status = 'https://schema.org/EventInProgress';
+                } elseif ($slug === 'culminado') {
+                  $event_status = 'https://schema.org/EventCompleted';
+                }
+                $start_timestamp = $fi_raw ? strtotime($fi_raw) : strtotime($date_attr);
+                if ($start_timestamp === false) {
+                  $start_timestamp = time();
+                }
+                $end_timestamp = $ff_raw ? strtotime($ff_raw) : $start_timestamp;
+                if ($end_timestamp === false) {
+                  $end_timestamp = $start_timestamp;
+                }
+                $start_iso = gmdate('c', $start_timestamp);
+                $end_iso = gmdate('c', $end_timestamp);
+                $schema_lists['convocatorias'][] = array(
+                  '@type' => 'ListItem',
+                  'position' => count($schema_lists['convocatorias']) + 1,
+                  'item' => array(
+                    '@type' => 'Event',
+                    '@id'   => esc_url_raw($highlight_url),
+                    'url'   => esc_url_raw($highlight_url),
+                    'name'  => wp_strip_all_tags($ttl),
+                    'startDate' => $start_iso,
+                    'endDate'   => $end_iso,
+                    'eventStatus' => $event_status,
+                    'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+                    'location' => array(
+                      '@type' => 'Place',
+                      'name'  => 'UGEL El Collao',
+                      'address' => array(
+                        '@type' => 'PostalAddress',
+                        'addressLocality' => 'Ilave',
+                        'addressRegion' => 'Puno',
+                        'addressCountry' => 'PE',
+                      ),
+                    ),
+                    'description' => wp_strip_all_tags(($tipo ? $tipo . ' — ' : '') . $fecha_texto),
+                  ),
+                );
               ?>
               <article class="conv-preview__item" itemscope itemtype="https://schema.org/Event" role="listitem">
                 <div class="conv-preview__main">
@@ -347,6 +428,40 @@ get_template_part('template-parts/front-announcements');
             <p>No hay convocatorias disponibles por ahora.</p>
           <?php endif; ?>
         </section>
+
+        <?php
+        $schema_output = array();
+        if (!empty($schema_lists['destacados'])) {
+          $schema_output[] = array(
+            '@context' => 'https://schema.org',
+            '@type'    => 'ItemList',
+            'name'     => 'Destacados UGEL El Collao',
+            'itemListOrder' => 'http://schema.org/ItemListOrderDescending',
+            'itemListElement' => $schema_lists['destacados'],
+          );
+        }
+        if (!empty($schema_lists['comunicados'])) {
+          $schema_output[] = array(
+            '@context' => 'https://schema.org',
+            '@type'    => 'ItemList',
+            'name'     => 'Comunicados UGEL El Collao',
+            'itemListOrder' => 'http://schema.org/ItemListOrderDescending',
+            'itemListElement' => $schema_lists['comunicados'],
+          );
+        }
+        if (!empty($schema_lists['convocatorias'])) {
+          $schema_output[] = array(
+            '@context' => 'https://schema.org',
+            '@type'    => 'ItemList',
+            'name'     => 'Convocatorias recientes UGEL El Collao',
+            'itemListOrder' => 'http://schema.org/ItemListOrderDescending',
+            'itemListElement' => $schema_lists['convocatorias'],
+          );
+        }
+        if (!empty($schema_output)) {
+          echo '<script type="application/ld+json">' . wp_json_encode($schema_output, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>' . "\n";
+        }
+        ?>
 
       </div>
     </div>
@@ -380,9 +495,9 @@ get_template_part('template-parts/front-announcements');
                          rel="<?php echo $target === '_blank' ? 'noopener noreferrer' : ''; ?>"
                          aria-label="<?php echo esc_attr($enlace->post_title); ?>">
                         <div class="logo-frame">
-                          <img src="<?php echo esc_url($imagen); ?>" 
+                          <img src="<?php echo esc_url($imagen); ?>"
                                alt="<?php echo esc_attr($enlace->post_title); ?>"
-                               loading="lazy">
+                               loading="lazy" decoding="async">
                         </div>
                       </a>
                       <span class="logo-title"><?php echo esc_html($enlace->post_title); ?></span>
